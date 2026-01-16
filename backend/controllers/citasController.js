@@ -1,0 +1,383 @@
+import { v4 as uuidv4 } from 'uuid';
+import { getOne, getAll, run } from '../database/db.js';
+
+// Crear cita
+export const crearCita = (req, res) => {
+  try {
+    const {
+      cliente_id,
+      cliente_nombre,
+      cliente_telefono,
+      servicio_id,
+      fecha,
+      hora,
+      notas,
+      created_by = 'manual',
+    } = req.body;
+
+    const tenantId = req.tenantId;
+
+    // Validaciones
+    if (!servicio_id || !fecha || !hora) {
+      return res.status(400).json({ error: 'Faltan datos obligatorios' });
+    }
+
+    // Si no hay cliente_id, crear cliente nuevo
+    let finalClienteId = cliente_id;
+
+    if (!cliente_id && cliente_nombre && cliente_telefono) {
+      finalClienteId = uuidv4();
+      run(
+        `INSERT INTO clientes (cliente_id, tenant_id, nombre, telefono) VALUES (?, ?, ?, ?)`,
+        [finalClienteId, tenantId, cliente_nombre, cliente_telefono]
+      );
+    }
+
+    if (!finalClienteId) {
+      return res.status(400).json({ error: 'Debe proporcionar cliente_id o cliente_nombre/telefono' });
+    }
+
+    // Obtener duración del servicio
+    const servicio = getOne(
+      `SELECT duracion, precio FROM servicios WHERE servicio_id = ? AND tenant_id = ?`,
+      [servicio_id, tenantId]
+    );
+
+    if (!servicio) {
+      return res.status(404).json({ error: 'Servicio no encontrado' });
+    }
+
+    // Calcular hora de fin
+    const [horaNum, minNum] = hora.split(':').map(Number);
+    const horaFin = new Date();
+    horaFin.setHours(horaNum, minNum + servicio.duracion);
+    const horaFinStr = `${String(horaFin.getHours()).padStart(2, '0')}:${String(horaFin.getMinutes()).padStart(2, '0')}`;
+
+    // Verificar disponibilidad (que no haya otra cita en ese horario)
+    const conflicto = getOne(
+      `SELECT cita_id FROM citas
+       WHERE tenant_id = ?
+       AND fecha = ?
+       AND estado NOT IN ('cancelada', 'completada')
+       AND (
+         (hora_inicio < ? AND hora_fin > ?) OR
+         (hora_inicio >= ? AND hora_inicio < ?)
+       )`,
+      [tenantId, fecha, horaFinStr, hora, hora, horaFinStr]
+    );
+
+    if (conflicto) {
+      return res.status(409).json({
+        error: 'Ya existe una cita en este horario',
+        available: false
+      });
+    }
+
+    // Crear cita
+    const citaId = uuidv4();
+    run(
+      `INSERT INTO citas (
+        cita_id, tenant_id, cliente_id, servicio_id, fecha, hora_inicio, hora_fin, notas, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [citaId, tenantId, finalClienteId, servicio_id, fecha, hora, horaFinStr, notas, created_by]
+    );
+
+    // Obtener la cita completa con datos relacionados
+    const citaCompleta = getOne(
+      `SELECT
+        c.*,
+        cl.nombre as cliente_nombre,
+        cl.telefono as cliente_telefono,
+        s.nombre as servicio_nombre,
+        s.precio as precio_servicio
+       FROM citas c
+       JOIN clientes cl ON c.cliente_id = cl.cliente_id
+       JOIN servicios s ON c.servicio_id = s.servicio_id
+       WHERE c.cita_id = ?`,
+      [citaId]
+    );
+
+    res.status(201).json(citaCompleta);
+  } catch (error) {
+    console.error('Error al crear cita:', error);
+    res.status(500).json({ error: 'Error al crear la cita' });
+  }
+};
+
+// Listar citas
+export const listarCitas = (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+    const { fecha_inicio, fecha_fin, cliente_id, estado } = req.query;
+
+    let query = `
+      SELECT
+        c.*,
+        cl.nombre as cliente_nombre,
+        cl.telefono as cliente_telefono,
+        cl.email as cliente_email,
+        s.nombre as servicio_nombre,
+        s.duracion as servicio_duracion,
+        s.precio as precio_servicio
+      FROM citas c
+      JOIN clientes cl ON c.cliente_id = cl.cliente_id
+      JOIN servicios s ON c.servicio_id = s.servicio_id
+      WHERE c.tenant_id = ?
+    `;
+
+    const params = [tenantId];
+
+    if (fecha_inicio) {
+      query += ' AND c.fecha >= ?';
+      params.push(fecha_inicio);
+    }
+
+    if (fecha_fin) {
+      query += ' AND c.fecha <= ?';
+      params.push(fecha_fin);
+    }
+
+    if (cliente_id) {
+      query += ' AND c.cliente_id = ?';
+      params.push(cliente_id);
+    }
+
+    if (estado) {
+      query += ' AND c.estado = ?';
+      params.push(estado);
+    }
+
+    query += ' ORDER BY c.fecha DESC, c.hora_inicio DESC';
+
+    const citas = getAll(query, params);
+    res.json(citas);
+  } catch (error) {
+    console.error('Error al listar citas:', error);
+    res.status(500).json({ error: 'Error al listar las citas' });
+  }
+};
+
+// Obtener una cita
+export const obtenerCita = (req, res) => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.tenantId;
+
+    const cita = getOne(
+      `SELECT
+        c.*,
+        cl.nombre as cliente_nombre,
+        cl.telefono as cliente_telefono,
+        cl.email as cliente_email,
+        s.nombre as servicio_nombre,
+        s.precio as precio_servicio
+       FROM citas c
+       JOIN clientes cl ON c.cliente_id = cl.cliente_id
+       JOIN servicios s ON c.servicio_id = s.servicio_id
+       WHERE c.cita_id = ? AND c.tenant_id = ?`,
+      [id, tenantId]
+    );
+
+    if (!cita) {
+      return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+
+    res.json(cita);
+  } catch (error) {
+    console.error('Error al obtener cita:', error);
+    res.status(500).json({ error: 'Error al obtener la cita' });
+  }
+};
+
+// Actualizar cita
+export const actualizarCita = (req, res) => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.tenantId;
+    const { estado, fecha, hora, notas, servicio_id } = req.body;
+
+    // Verificar que la cita existe
+    const citaExistente = getOne(
+      'SELECT * FROM citas WHERE cita_id = ? AND tenant_id = ?',
+      [id, tenantId]
+    );
+
+    if (!citaExistente) {
+      return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+
+    // Construir query de actualización dinámicamente
+    const updates = [];
+    const params = [];
+
+    if (estado) {
+      updates.push('estado = ?');
+      params.push(estado);
+    }
+
+    if (fecha) {
+      updates.push('fecha = ?');
+      params.push(fecha);
+    }
+
+    if (hora) {
+      updates.push('hora_inicio = ?');
+      params.push(hora);
+
+      // Recalcular hora_fin si cambió la hora
+      if (servicio_id || citaExistente.servicio_id) {
+        const sid = servicio_id || citaExistente.servicio_id;
+        const servicio = getOne('SELECT duracion FROM servicios WHERE servicio_id = ?', [sid]);
+
+        if (servicio) {
+          const [horaNum, minNum] = hora.split(':').map(Number);
+          const horaFin = new Date();
+          horaFin.setHours(horaNum, minNum + servicio.duracion);
+          const horaFinStr = `${String(horaFin.getHours()).padStart(2, '0')}:${String(horaFin.getMinutes()).padStart(2, '0')}`;
+
+          updates.push('hora_fin = ?');
+          params.push(horaFinStr);
+        }
+      }
+    }
+
+    if (servicio_id) {
+      updates.push('servicio_id = ?');
+      params.push(servicio_id);
+    }
+
+    if (notas !== undefined) {
+      updates.push('notas = ?');
+      params.push(notas);
+    }
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+
+    params.push(id, tenantId);
+
+    const query = `UPDATE citas SET ${updates.join(', ')} WHERE cita_id = ? AND tenant_id = ?`;
+    run(query, params);
+
+    // Obtener cita actualizada
+    const citaActualizada = getOne(
+      `SELECT
+        c.*,
+        cl.nombre as cliente_nombre,
+        cl.telefono as cliente_telefono,
+        s.nombre as servicio_nombre
+       FROM citas c
+       JOIN clientes cl ON c.cliente_id = cl.cliente_id
+       JOIN servicios s ON c.servicio_id = s.servicio_id
+       WHERE c.cita_id = ?`,
+      [id]
+    );
+
+    res.json(citaActualizada);
+  } catch (error) {
+    console.error('Error al actualizar cita:', error);
+    res.status(500).json({ error: 'Error al actualizar la cita' });
+  }
+};
+
+// Cancelar cita
+export const cancelarCita = (req, res) => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.tenantId;
+    const { motivo } = req.body;
+
+    const cita = getOne(
+      'SELECT * FROM citas WHERE cita_id = ? AND tenant_id = ?',
+      [id, tenantId]
+    );
+
+    if (!cita) {
+      return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+
+    run(
+      'UPDATE citas SET estado = ?, notas = ?, updated_at = CURRENT_TIMESTAMP WHERE cita_id = ?',
+      ['cancelada', motivo ? `CANCELADA: ${motivo}` : 'CANCELADA', id]
+    );
+
+    res.json({ success: true, message: 'Cita cancelada exitosamente' });
+  } catch (error) {
+    console.error('Error al cancelar cita:', error);
+    res.status(500).json({ error: 'Error al cancelar la cita' });
+  }
+};
+
+// Consultar disponibilidad
+export const consultarDisponibilidad = (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+    const { fecha, servicio_id } = req.query;
+
+    if (!fecha || !servicio_id) {
+      return res.status(400).json({ error: 'Fecha y servicio_id son obligatorios' });
+    }
+
+    // Obtener servicio
+    const servicio = getOne(
+      'SELECT duracion FROM servicios WHERE servicio_id = ? AND tenant_id = ?',
+      [servicio_id, tenantId]
+    );
+
+    if (!servicio) {
+      return res.status(404).json({ error: 'Servicio no encontrado' });
+    }
+
+    // Obtener citas del día
+    const citasDelDia = getAll(
+      `SELECT hora_inicio, hora_fin FROM citas
+       WHERE tenant_id = ? AND fecha = ? AND estado NOT IN ('cancelada')
+       ORDER BY hora_inicio`,
+      [tenantId, fecha]
+    );
+
+    // Obtener horario del negocio para ese día
+    // Por ahora devolver horario por defecto, luego se puede mejorar
+    const horariosDisponibles = [];
+    const horaInicio = 9; // 9:00
+    const horaFin = 20; // 20:00
+    const intervalo = 30; // minutos
+
+    for (let hora = horaInicio * 60; hora < horaFin * 60; hora += intervalo) {
+      const horas = Math.floor(hora / 60);
+      const minutos = hora % 60;
+      const horaStr = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+
+      // Calcular hora de fin del slot
+      const horaFinSlot = hora + servicio.duracion;
+      const horasFinSlot = Math.floor(horaFinSlot / 60);
+      const minutosFinSlot = horaFinSlot % 60;
+      const horaFinStr = `${String(horasFinSlot).padStart(2, '0')}:${String(minutosFinSlot).padStart(2, '0')}`;
+
+      // Verificar si hay conflicto
+      const hayConflicto = citasDelDia.some((cita) => {
+        return (
+          (horaStr >= cita.hora_inicio && horaStr < cita.hora_fin) ||
+          (horaFinStr > cita.hora_inicio && horaFinStr <= cita.hora_fin) ||
+          (horaStr <= cita.hora_inicio && horaFinStr >= cita.hora_fin)
+        );
+      });
+
+      if (!hayConflicto) {
+        horariosDisponibles.push({
+          hora: horaStr,
+          disponible: true,
+        });
+      }
+    }
+
+    res.json({
+      fecha,
+      servicio_id,
+      duracion: servicio.duracion,
+      slots_disponibles: horariosDisponibles,
+    });
+  } catch (error) {
+    console.error('Error al consultar disponibilidad:', error);
+    res.status(500).json({ error: 'Error al consultar disponibilidad' });
+  }
+};
