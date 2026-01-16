@@ -4,6 +4,7 @@ import BusinessSettings from '../components/settings/BusinessSettings';
 import ScheduleSettings from '../components/settings/ScheduleSettings';
 import IntegrationSettings from '../components/settings/IntegrationSettings';
 import AdvancedSettings from '../components/settings/AdvancedSettings';
+import LanguageSettings from '../components/settings/LanguageSettings';
 import { negocioAPI } from '../services/api';
 
 const Settings = () => {
@@ -46,6 +47,7 @@ const Settings = () => {
     { id: 'schedule', label: 'Horarios', icon: '🕐' },
     { id: 'integration', label: 'Integración n8n', icon: '🔗' },
     { id: 'advanced', label: 'Configuración Avanzada', icon: '⚙️' },
+    { id: 'language', label: 'Idioma', icon: '🌐' },
   ];
 
   return (
@@ -109,6 +111,10 @@ const Settings = () => {
             config={tenantConfig?.config || {}}
             onSave={handleSaveAdvancedSettings}
           />
+        )}
+
+        {activeTab === 'language' && (
+          <LanguageSettings />
         )}
       </div>
     </div>

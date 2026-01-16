@@ -1,0 +1,263 @@
+{
+  "app": {
+    "name": "Sistema de Citas",
+    "description": "Gestión profesional de citas para tu negocio"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "loginWithGoogle": "Iniciar sesión con Google",
+    "logout": "Cerrar Sesión",
+    "welcome": "Bienvenido",
+    "loginError": "Error al iniciar sesión",
+    "loginDescription": "Accede a tu panel de control de citas"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "calendar": "Calendario",
+    "appointments": "Citas",
+    "clients": "Clientes",
+    "services": "Servicios",
+    "settings": "Configuración"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Bienvenido de nuevo",
+    "stats": {
+      "totalAppointments": "Citas Totales",
+      "todayAppointments": "Citas Hoy",
+      "totalClients": "Clientes Totales",
+      "totalRevenue": "Ingresos Totales"
+    },
+    "todayAppointments": "Citas de Hoy",
+    "noAppointments": "No hay citas programadas para hoy",
+    "upcomingAppointments": "Próximas Citas",
+    "recentActivity": "Actividad Reciente"
+  },
+  "appointments": {
+    "title": "Citas",
+    "newAppointment": "Nueva Cita",
+    "createAppointment": "Crear Cita",
+    "editAppointment": "Editar Cita",
+    "appointmentDetails": "Detalles de la Cita",
+    "list": "Lista de Citas",
+    "filters": "Filtros",
+    "noAppointments": "No hay citas registradas",
+    "status": {
+      "pending": "Pendiente",
+      "confirmed": "Confirmada",
+      "completed": "Completada",
+      "cancelled": "Cancelada",
+      "noShow": "No Asistió"
+    },
+    "fields": {
+      "client": "Cliente",
+      "service": "Servicio",
+      "date": "Fecha",
+      "time": "Hora",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "duration": "Duración",
+      "status": "Estado",
+      "notes": "Notas",
+      "price": "Precio"
+    },
+    "actions": {
+      "confirm": "Confirmar",
+      "complete": "Completar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "edit": "Editar",
+      "view": "Ver Detalles"
+    },
+    "messages": {
+      "created": "Cita creada exitosamente",
+      "updated": "Cita actualizada exitosamente",
+      "cancelled": "Cita cancelada exitosamente",
+      "deleted": "Cita eliminada exitosamente",
+      "confirmCancel": "¿Estás seguro de cancelar esta cita?"
+    }
+  },
+  "clients": {
+    "title": "Clientes",
+    "newClient": "Nuevo Cliente",
+    "createClient": "Crear Cliente",
+    "editClient": "Editar Cliente",
+    "clientDetails": "Detalles del Cliente",
+    "list": "Lista de Clientes",
+    "noClients": "No hay clientes registrados",
+    "fields": {
+      "name": "Nombre",
+      "phone": "Teléfono",
+      "email": "Correo Electrónico",
+      "notes": "Notas",
+      "totalAppointments": "Total de Citas",
+      "totalSpent": "Total Gastado",
+      "createdAt": "Registrado el"
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "view": "Ver Perfil",
+      "newAppointment": "Nueva Cita"
+    },
+    "messages": {
+      "created": "Cliente creado exitosamente",
+      "updated": "Cliente actualizado exitosamente",
+      "deleted": "Cliente eliminado exitosamente",
+      "confirmDelete": "¿Estás seguro de eliminar este cliente?"
+    },
+    "appointmentHistory": "Historial de Citas"
+  },
+  "services": {
+    "title": "Servicios",
+    "newService": "Nuevo Servicio",
+    "createService": "Crear Servicio",
+    "editService": "Editar Servicio",
+    "list": "Lista de Servicios",
+    "noServices": "No hay servicios registrados",
+    "fields": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "duration": "Duración (minutos)",
+      "price": "Precio",
+      "category": "Categoría",
+      "active": "Activo"
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "activate": "Activar",
+      "deactivate": "Desactivar"
+    },
+    "messages": {
+      "created": "Servicio creado exitosamente",
+      "updated": "Servicio actualizado exitosamente",
+      "deleted": "Servicio eliminado exitosamente",
+      "confirmDelete": "¿Estás seguro de eliminar este servicio?"
+    }
+  },
+  "calendar": {
+    "title": "Calendario",
+    "month": "Mes",
+    "week": "Semana",
+    "day": "Día",
+    "today": "Hoy",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "noEvents": "No hay eventos",
+    "selectSlot": "Selecciona un horario para crear una cita"
+  },
+  "settings": {
+    "title": "Configuración",
+    "tabs": {
+      "business": "Datos del Negocio",
+      "schedule": "Horarios",
+      "integration": "Integración n8n",
+      "advanced": "Configuración Avanzada",
+      "language": "Idioma y Región"
+    },
+    "business": {
+      "title": "Información del Negocio",
+      "name": "Nombre del Negocio",
+      "type": "Tipo de Negocio",
+      "address": "Dirección",
+      "phone": "Teléfono",
+      "email": "Correo Electrónico",
+      "logo": "Logo"
+    },
+    "schedule": {
+      "title": "Horarios de Atención",
+      "dayOfWeek": "Día de la Semana",
+      "openTime": "Hora de Apertura",
+      "closeTime": "Hora de Cierre",
+      "closed": "Cerrado",
+      "breakTime": "Horario de Descanso",
+      "days": {
+        "monday": "Lunes",
+        "tuesday": "Martes",
+        "wednesday": "Miércoles",
+        "thursday": "Jueves",
+        "friday": "Viernes",
+        "saturday": "Sábado",
+        "sunday": "Domingo"
+      }
+    },
+    "integration": {
+      "title": "Integración con n8n",
+      "tenantId": "Tenant ID",
+      "apiKey": "API Key",
+      "webhookUrl": "URL del Webhook",
+      "description": "Usa estas credenciales para integrar con n8n",
+      "copySuccess": "Copiado al portapapeles"
+    },
+    "advanced": {
+      "title": "Configuración Avanzada",
+      "webhooks": "Webhooks",
+      "reminders": "Recordatorios Automáticos",
+      "appointmentSettings": "Gestión de Citas",
+      "availability": "Disponibilidad y Horarios",
+      "webhookUrl": "URL del Webhook",
+      "testWebhook": "Probar Webhook",
+      "webhookSuccess": "Webhook funciona correctamente",
+      "webhookError": "Error al conectar con webhook",
+      "activeReminders": "Activar recordatorios automáticos",
+      "reminderHours": "Enviar recordatorio (horas antes)",
+      "autoConfirmation": "Enviar confirmación automática al crear cita",
+      "allowCancellation": "Permitir que clientes cancelen por WhatsApp/chatbot",
+      "minCancellationTime": "Tiempo mínimo para cancelar (horas antes)",
+      "slotInterval": "Intervalo entre slots de citas (minutos)"
+    },
+    "language": {
+      "title": "Idioma y Región",
+      "selectLanguage": "Seleccionar Idioma",
+      "language": "Idioma",
+      "languages": {
+        "es": "Español",
+        "en": "English"
+      },
+      "timezone": "Zona Horaria",
+      "dateFormat": "Formato de Fecha",
+      "timeFormat": "Formato de Hora"
+    },
+    "save": "Guardar Cambios",
+    "saving": "Guardando...",
+    "saved": "Cambios guardados exitosamente"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "update": "Actualizar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "clear": "Limpiar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "noResults": "No se encontraron resultados",
+    "selectOption": "Selecciona una opción",
+    "required": "Campo requerido",
+    "optional": "Opcional",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "finish": "Finalizar",
+    "actions": "Acciones"
+  },
+  "errors": {
+    "general": "Ha ocurrido un error",
+    "networkError": "Error de conexión",
+    "unauthorized": "No autorizado",
+    "notFound": "No encontrado",
+    "serverError": "Error del servidor",
+    "validationError": "Error de validación"
+  }
+}
