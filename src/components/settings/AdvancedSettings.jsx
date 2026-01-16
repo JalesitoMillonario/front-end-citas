@@ -4,6 +4,8 @@ import { Settings as SettingsIcon, Save, AlertCircle, CheckCircle, Webhook } fro
 const AdvancedSettings = ({ config, onSave }) => {
   const [formData, setFormData] = useState({
     webhook_recordatorios_url: '',
+    webhook_eventos_url: '',
+    webhooks_activos: true,
     recordatorio_horas_antes: 12,
     recordatorio_activo: true,
     enviar_confirmacion_automatica: true,
@@ -19,6 +21,8 @@ const AdvancedSettings = ({ config, onSave }) => {
     if (config) {
       setFormData({
         webhook_recordatorios_url: config.webhook_recordatorios_url || '',
+        webhook_eventos_url: config.webhook_eventos_url || '',
+        webhooks_activos: config.webhooks_activos !== false,
         recordatorio_horas_antes: config.recordatorio_horas_antes || 12,
         recordatorio_activo: config.recordatorio_activo !== false,
         enviar_confirmacion_automatica: config.enviar_confirmacion_automatica !== false,
@@ -148,6 +152,60 @@ const AdvancedSettings = ({ config, onSave }) => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Webhook para Eventos */}
+        <div className="border-l-4 border-indigo-500 pl-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Webhook className="w-5 h-5 text-indigo-600" />
+            <h4 className="font-semibold text-gray-900">
+              Webhook de Eventos
+            </h4>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-3">
+              <p className="text-sm text-indigo-800">
+                <strong>Eventos disponibles:</strong> cita_creada, cita_actualizada, cita_cancelada, cita_confirmada, cita_completada
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 mb-3">
+              <input
+                type="checkbox"
+                id="webhooks_activos"
+                name="webhooks_activos"
+                checked={formData.webhooks_activos}
+                onChange={handleChange}
+                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="webhooks_activos" className="text-sm font-medium text-gray-700">
+                Activar webhooks de eventos
+              </label>
+            </div>
+
+            {formData.webhooks_activos && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  URL del Webhook de Eventos (n8n)
+                </label>
+                <input
+                  type="url"
+                  name="webhook_eventos_url"
+                  value={formData.webhook_eventos_url}
+                  onChange={handleChange}
+                  placeholder="https://tu-n8n.com/webhook/eventos-citas"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  URL donde se enviarán todos los eventos (crear, actualizar, cancelar, confirmar, completar citas)
+                </p>
+                <p className="text-xs text-gray-600 mt-2 font-medium">
+                  💡 Cada webhook incluye un campo "evento" para distinguir el tipo de acción
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

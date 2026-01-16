@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { getOne, getAll, run } from '../database/db.js';
+import { webhookCitaCreada, webhookCitaActualizada, webhookCitaCancelada, webhookCitaConfirmada, webhookCitaCompletada } from '../utils/webhooks.js';
 
 // Crear cita
 export const crearCita = (req, res) => {
@@ -88,13 +89,20 @@ export const crearCita = (req, res) => {
         c.*,
         cl.nombre as cliente_nombre,
         cl.telefono as cliente_telefono,
+        cl.email as cliente_email,
         s.nombre as servicio_nombre,
+        s.duracion as servicio_duracion,
         s.precio as precio_servicio
        FROM citas c
        JOIN clientes cl ON c.cliente_id = cl.cliente_id
        JOIN servicios s ON c.servicio_id = s.servicio_id
        WHERE c.cita_id = ?`,
       [citaId]
+    );
+
+    // Enviar webhook de cita creada (no esperar respuesta)
+    webhookCitaCreada(tenantId, citaCompleta).catch(err =>
+      console.error('Error en webhook cita creada:', err)
     );
 
     res.status(201).json(citaCompleta);
@@ -209,20 +217,30 @@ export const actualizarCita = (req, res) => {
     // Construir query de actualización dinámicamente
     const updates = [];
     const params = [];
+    const cambios = []; // Para tracking de cambios
 
     if (estado) {
       updates.push('estado = ?');
       params.push(estado);
+      if (citaExistente.estado !== estado) {
+        cambios.push({ campo: 'estado', anterior: citaExistente.estado, nuevo: estado });
+      }
     }
 
     if (fecha) {
       updates.push('fecha = ?');
       params.push(fecha);
+      if (citaExistente.fecha !== fecha) {
+        cambios.push({ campo: 'fecha', anterior: citaExistente.fecha, nuevo: fecha });
+      }
     }
 
     if (hora) {
       updates.push('hora_inicio = ?');
       params.push(hora);
+      if (citaExistente.hora_inicio !== hora) {
+        cambios.push({ campo: 'hora', anterior: citaExistente.hora_inicio, nuevo: hora });
+      }
 
       // Recalcular hora_fin si cambió la hora
       if (servicio_id || citaExistente.servicio_id) {
@@ -264,13 +282,30 @@ export const actualizarCita = (req, res) => {
         c.*,
         cl.nombre as cliente_nombre,
         cl.telefono as cliente_telefono,
-        s.nombre as servicio_nombre
+        cl.email as cliente_email,
+        s.nombre as servicio_nombre,
+        s.precio as precio_servicio
        FROM citas c
        JOIN clientes cl ON c.cliente_id = cl.cliente_id
        JOIN servicios s ON c.servicio_id = s.servicio_id
        WHERE c.cita_id = ?`,
       [id]
     );
+
+    // Enviar webhooks según el tipo de cambio
+    if (estado === 'confirmada' && citaExistente.estado !== 'confirmada') {
+      webhookCitaConfirmada(tenantId, citaActualizada).catch(err =>
+        console.error('Error en webhook cita confirmada:', err)
+      );
+    } else if (estado === 'completada' && citaExistente.estado !== 'completada') {
+      webhookCitaCompletada(tenantId, citaActualizada).catch(err =>
+        console.error('Error en webhook cita completada:', err)
+      );
+    } else if (cambios.length > 0) {
+      webhookCitaActualizada(tenantId, citaActualizada, cambios).catch(err =>
+        console.error('Error en webhook cita actualizada:', err)
+      );
+    }
 
     res.json(citaActualizada);
   } catch (error) {
@@ -286,8 +321,19 @@ export const cancelarCita = (req, res) => {
     const tenantId = req.tenantId;
     const { motivo } = req.body;
 
+    // Obtener cita completa antes de cancelar
     const cita = getOne(
-      'SELECT * FROM citas WHERE cita_id = ? AND tenant_id = ?',
+      `SELECT
+        c.*,
+        cl.nombre as cliente_nombre,
+        cl.telefono as cliente_telefono,
+        cl.email as cliente_email,
+        s.nombre as servicio_nombre,
+        s.precio as precio_servicio
+       FROM citas c
+       JOIN clientes cl ON c.cliente_id = cl.cliente_id
+       JOIN servicios s ON c.servicio_id = s.servicio_id
+       WHERE c.cita_id = ? AND c.tenant_id = ?`,
       [id, tenantId]
     );
 
@@ -298,6 +344,11 @@ export const cancelarCita = (req, res) => {
     run(
       'UPDATE citas SET estado = ?, notas = ?, updated_at = CURRENT_TIMESTAMP WHERE cita_id = ?',
       ['cancelada', motivo ? `CANCELADA: ${motivo}` : 'CANCELADA', id]
+    );
+
+    // Enviar webhook de cita cancelada
+    webhookCitaCancelada(tenantId, cita, motivo).catch(err =>
+      console.error('Error en webhook cita cancelada:', err)
     );
 
     res.json({ success: true, message: 'Cita cancelada exitosamente' });

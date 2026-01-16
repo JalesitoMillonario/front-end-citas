@@ -1,6 +1,6 @@
 import cron from 'node-cron';
-import axios from 'axios';
 import { getAll, run } from '../database/db.js';
+import { webhookRecordatorio } from './webhooks.js';
 
 // Función para enviar recordatorio a n8n usando la configuración del tenant
 async function enviarRecordatorioN8n(cita, negocio) {
@@ -14,53 +14,15 @@ async function enviarRecordatorioN8n(cita, negocio) {
       return false;
     }
 
-    // Obtener webhook URL específico del negocio (o usar el global como fallback)
-    const webhookUrl = config.webhook_recordatorios_url || process.env.N8N_WEBHOOK_URL;
+    // Usar el módulo centralizado de webhooks
+    console.log(`📤 Enviando recordatorio para cita ${cita.cita_id} (${negocio.nombre_negocio})...`);
 
-    if (!webhookUrl) {
-      console.warn(`⚠️  Webhook no configurado para negocio ${negocio.nombre_negocio}, saltando recordatorio`);
-      return false;
+    const enviado = await webhookRecordatorio(negocio.tenant_id, cita, negocio);
+
+    if (enviado) {
+      console.log(`✅ Recordatorio enviado exitosamente para cita ${cita.cita_id}`);
     }
-
-    const payload = {
-      tipo: 'recordatorio_cita',
-      cita: {
-        cita_id: cita.cita_id,
-        fecha: cita.fecha,
-        hora: cita.hora_inicio,
-        servicio: cita.servicio_nombre,
-        notas: cita.notas,
-      },
-      cliente: {
-        nombre: cita.cliente_nombre,
-        telefono: cita.cliente_telefono,
-        email: cita.cliente_email,
-      },
-      negocio: {
-        tenant_id: negocio.tenant_id,
-        nombre: negocio.nombre_negocio,
-        telefono: negocio.telefono,
-        direccion: negocio.direccion,
-      },
-      config: {
-        enviar_confirmacion: config.enviar_confirmacion_automatica !== false,
-        permitir_cancelacion: config.permitir_cancelacion_cliente !== false,
-      },
-      timestamp: new Date().toISOString(),
-    };
-
-    console.log(`📤 Enviando recordatorio a n8n para cita ${cita.cita_id} (${negocio.nombre_negocio})...`);
-
-    const response = await axios.post(webhookUrl, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Tenant-Id': negocio.tenant_id,
-      },
-      timeout: 10000,
-    });
-
-    console.log(`✅ Recordatorio enviado exitosamente para cita ${cita.cita_id}`);
-    return true;
+    return enviado;
   } catch (error) {
     console.error(`❌ Error al enviar recordatorio para cita ${cita.cita_id}:`, error.message);
     return false;
