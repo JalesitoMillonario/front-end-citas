@@ -149,11 +149,11 @@ src/
 - [x] Gestión de servicios
 - [x] API endpoints para n8n
 
-### 🔄 Fase 2 (En desarrollo)
-- [ ] Calendario visual con drag & drop
-- [ ] Gestión completa de clientes
-- [ ] Configuración del negocio
-- [ ] Configuración de horarios
+### ✅ Fase 2 (Completado)
+- [x] Calendario visual con drag & drop
+- [x] Gestión completa de clientes
+- [x] Configuración del negocio
+- [x] Configuración de horarios
 
 ### 📅 Fase 3 (Futuro)
 - [ ] Onboarding completo para nuevos usuarios
