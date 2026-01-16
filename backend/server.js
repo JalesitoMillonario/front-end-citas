@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
+// Base de datos
+import { inicializarBaseDatos } from './database/init.js';
+
 // Controladores
 import * as citasController from './controllers/citasController.js';
 import * as serviciosController from './controllers/serviciosController.js';
@@ -148,8 +151,11 @@ app.use((error, req, res, next) => {
 
 // ==================== INICIAR SERVIDOR ====================
 
+// Inicializar base de datos ANTES de arrancar el servidor
+inicializarBaseDatos();
+
 app.listen(PORT, () => {
-  console.log(`\n🚀 Servidor iniciado en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor iniciado en http://localhost:${PORT}`);
   console.log(`📡 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
   console.log(`🔑 JWT Secret: ${process.env.JWT_SECRET ? '✓ Configurado' : '✗ No configurado'}`);
   console.log(`🪝 N8N Webhook: ${process.env.N8N_WEBHOOK_URL || '✗ No configurado'}`);
