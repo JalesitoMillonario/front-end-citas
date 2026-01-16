@@ -2,13 +2,23 @@ import cron from 'node-cron';
 import axios from 'axios';
 import { getAll, run } from '../database/db.js';
 
-// Función para enviar recordatorio a n8n
+// Función para enviar recordatorio a n8n usando la configuración del tenant
 async function enviarRecordatorioN8n(cita, negocio) {
   try {
-    const webhookUrl = process.env.N8N_WEBHOOK_URL;
+    // Obtener configuración del negocio
+    const config = negocio.config ? JSON.parse(negocio.config) : {};
+
+    // Verificar si los recordatorios están activos para este negocio
+    if (config.recordatorio_activo === false) {
+      console.log(`⏸️  Recordatorios desactivados para negocio ${negocio.tenant_id}`);
+      return false;
+    }
+
+    // Obtener webhook URL específico del negocio (o usar el global como fallback)
+    const webhookUrl = config.webhook_recordatorios_url || process.env.N8N_WEBHOOK_URL;
 
     if (!webhookUrl) {
-      console.warn('⚠️  N8N_WEBHOOK_URL no configurado, saltando envío de recordatorio');
+      console.warn(`⚠️  Webhook no configurado para negocio ${negocio.nombre_negocio}, saltando recordatorio`);
       return false;
     }
 
@@ -32,10 +42,14 @@ async function enviarRecordatorioN8n(cita, negocio) {
         telefono: negocio.telefono,
         direccion: negocio.direccion,
       },
+      config: {
+        enviar_confirmacion: config.enviar_confirmacion_automatica !== false,
+        permitir_cancelacion: config.permitir_cancelacion_cliente !== false,
+      },
       timestamp: new Date().toISOString(),
     };
 
-    console.log(`📤 Enviando recordatorio a n8n para cita ${cita.cita_id}...`);
+    console.log(`📤 Enviando recordatorio a n8n para cita ${cita.cita_id} (${negocio.nombre_negocio})...`);
 
     const response = await axios.post(webhookUrl, payload, {
       headers: {
@@ -53,10 +67,20 @@ async function enviarRecordatorioN8n(cita, negocio) {
   }
 }
 
-// Función para procesar recordatorios pendientes
-async function procesarRecordatorios() {
+// Función para procesar recordatorios pendientes por tenant
+async function procesarRecordatoriosPorTenant(negocio) {
   try {
-    const horasAntes = parseInt(process.env.REMINDER_HOURS_BEFORE || '12', 10);
+    // Obtener configuración del negocio
+    const config = negocio.config ? JSON.parse(negocio.config) : {};
+
+    // Verificar si recordatorios están activos
+    if (config.recordatorio_activo === false) {
+      return 0;
+    }
+
+    // Obtener horas antes (específico del tenant o default)
+    const horasAntes = config.recordatorio_horas_antes ||
+                       parseInt(process.env.REMINDER_HOURS_BEFORE || '12', 10);
 
     // Calcular timestamp de referencia (ahora + X horas)
     const ahora = new Date();
@@ -65,8 +89,7 @@ async function procesarRecordatorios() {
     const fechaReferencia = referencia.toISOString().split('T')[0];
     const horaReferencia = `${String(referencia.getHours()).padStart(2, '0')}:${String(referencia.getMinutes()).padStart(2, '0')}`;
 
-    // Buscar citas que necesitan recordatorio
-    // (citas que están entre ahora+12h y ahora+12h+30min)
+    // Buscar citas que necesitan recordatorio para este tenant
     const horaReferenciaMax = new Date(referencia.getTime() + 30 * 60 * 1000);
     const horaMaxStr = `${String(horaReferenciaMax.getHours()).padStart(2, '0')}:${String(horaReferenciaMax.getMinutes()).padStart(2, '0')}`;
 
@@ -80,35 +103,26 @@ async function procesarRecordatorios() {
        FROM citas c
        JOIN clientes cl ON c.cliente_id = cl.cliente_id
        JOIN servicios s ON c.servicio_id = s.servicio_id
-       WHERE c.recordatorio_enviado = 0
+       WHERE c.tenant_id = ?
+       AND c.recordatorio_enviado = 0
        AND c.estado IN ('pendiente', 'confirmada')
        AND (
          (c.fecha = ? AND c.hora_inicio >= ? AND c.hora_inicio <= ?) OR
          (c.fecha > ?)
        )
-       LIMIT 50`,
-      [fechaReferencia, horaReferencia, horaMaxStr, fechaReferencia]
+       LIMIT 20`,
+      [negocio.tenant_id, fechaReferencia, horaReferencia, horaMaxStr, fechaReferencia]
     );
 
     if (citasPendientes.length === 0) {
-      console.log('📭 No hay recordatorios pendientes');
-      return;
+      return 0;
     }
 
-    console.log(`📬 Procesando ${citasPendientes.length} recordatorios...`);
+    console.log(`📬 Procesando ${citasPendientes.length} recordatorios para ${negocio.nombre_negocio}...`);
+
+    let enviados = 0;
 
     for (const cita of citasPendientes) {
-      // Obtener datos del negocio
-      const negocio = getAll(
-        'SELECT * FROM negocios WHERE tenant_id = ?',
-        [cita.tenant_id]
-      )[0];
-
-      if (!negocio) {
-        console.warn(`⚠️  Negocio no encontrado para cita ${cita.cita_id}`);
-        continue;
-      }
-
       // Enviar recordatorio a n8n
       const enviado = await enviarRecordatorioN8n(cita, negocio);
 
@@ -118,13 +132,50 @@ async function procesarRecordatorios() {
           'UPDATE citas SET recordatorio_enviado = 1 WHERE cita_id = ?',
           [cita.cita_id]
         );
+        enviados++;
       }
 
       // Pequeña pausa entre recordatorios para no saturar
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    console.log('✅ Recordatorios procesados');
+    return enviados;
+  } catch (error) {
+    console.error(`❌ Error al procesar recordatorios para tenant ${negocio.tenant_id}:`, error);
+    return 0;
+  }
+}
+
+// Función para procesar todos los recordatorios pendientes
+async function procesarRecordatorios() {
+  try {
+    console.log('\n🔔 Revisando recordatorios pendientes...');
+
+    // Obtener todos los negocios activos
+    const negocios = getAll('SELECT * FROM negocios');
+
+    if (negocios.length === 0) {
+      console.log('📭 No hay negocios registrados');
+      return;
+    }
+
+    console.log(`🏢 Revisando ${negocios.length} negocios...`);
+
+    let totalEnviados = 0;
+
+    for (const negocio of negocios) {
+      const enviados = await procesarRecordatoriosPorTenant(negocio);
+      totalEnviados += enviados;
+
+      // Pausa entre negocios
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    if (totalEnviados > 0) {
+      console.log(`✅ Total de recordatorios enviados: ${totalEnviados}`);
+    } else {
+      console.log('📭 No hay recordatorios pendientes');
+    }
   } catch (error) {
     console.error('❌ Error al procesar recordatorios:', error);
   }
@@ -132,12 +183,11 @@ async function procesarRecordatorios() {
 
 // Iniciar cron job para revisar recordatorios cada 30 minutos
 export function iniciarSistemaRecordatorios() {
-  console.log('🕐 Iniciando sistema de recordatorios...');
-  console.log(`⏰ Recordatorios se enviarán ${process.env.REMINDER_HOURS_BEFORE || 12} horas antes de cada cita`);
+  console.log('🕐 Iniciando sistema de recordatorios multi-tenant...');
+  console.log('⏰ Cada negocio tiene su propia configuración de recordatorios');
 
   // Ejecutar cada 30 minutos
   cron.schedule('*/30 * * * *', () => {
-    console.log('\n🔔 Revisando recordatorios pendientes...');
     procesarRecordatorios();
   });
 

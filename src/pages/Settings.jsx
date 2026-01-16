@@ -3,6 +3,7 @@ import { useTenant } from '../context/TenantContext';
 import BusinessSettings from '../components/settings/BusinessSettings';
 import ScheduleSettings from '../components/settings/ScheduleSettings';
 import IntegrationSettings from '../components/settings/IntegrationSettings';
+import AdvancedSettings from '../components/settings/AdvancedSettings';
 import { negocioAPI } from '../services/api';
 
 const Settings = () => {
@@ -29,10 +30,22 @@ const Settings = () => {
     }
   };
 
+  const handleSaveAdvancedSettings = async (advancedConfig) => {
+    try {
+      // Guardar en el campo config del negocio
+      await negocioAPI.actualizarConfig({ config: advancedConfig });
+      alert('Configuración avanzada guardada exitosamente');
+      await loadTenantConfig();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error al guardar configuración avanzada');
+    }
+  };
+
   const tabs = [
     { id: 'business', label: 'Datos del Negocio', icon: '🏢' },
     { id: 'schedule', label: 'Horarios', icon: '🕐' },
     { id: 'integration', label: 'Integración n8n', icon: '🔗' },
+    { id: 'advanced', label: 'Configuración Avanzada', icon: '⚙️' },
   ];
 
   return (
@@ -88,6 +101,13 @@ const Settings = () => {
           <IntegrationSettings
             tenantId={localStorage.getItem('tenant_id')}
             apiKey={tenantConfig?.api_key}
+          />
+        )}
+
+        {activeTab === 'advanced' && (
+          <AdvancedSettings
+            config={tenantConfig?.config || {}}
+            onSave={handleSaveAdvancedSettings}
           />
         )}
       </div>
