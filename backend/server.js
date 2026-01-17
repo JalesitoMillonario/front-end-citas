@@ -118,6 +118,40 @@ app.get('/api/n8n/servicios/listar', verifyApiKey, serviciosController.listarSer
 
 // ==================== ENDPOINTS DE TESTING ====================
 
+// Probar webhook
+app.post('/api/test/webhook', verifyTenant, async (req, res) => {
+  try {
+    const { webhook_url } = req.body;
+
+    if (!webhook_url) {
+      return res.status(400).json({ error: 'webhook_url is required' });
+    }
+
+    const axios = (await import('axios')).default;
+
+    const payload = {
+      evento: 'test',
+      mensaje: 'Test webhook from appointment system',
+      timestamp: new Date().toISOString(),
+    };
+
+    await axios.post(webhook_url, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
+
+    res.json({ success: true, message: 'Webhook test successful' });
+  } catch (error) {
+    console.error('Webhook test error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Connection error'
+    });
+  }
+});
+
 // Enviar recordatorio manual (para testing)
 app.post('/api/test/recordatorio/:citaId', verifyTenant, async (req, res) => {
   try {

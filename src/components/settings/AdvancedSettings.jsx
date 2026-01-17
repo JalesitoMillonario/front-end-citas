@@ -55,19 +55,21 @@ const AdvancedSettings = ({ config, onSave }) => {
     setTestStatus('testing');
 
     try {
-      const response = await fetch(formData.webhook_url, {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/test/webhook`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          evento: 'test',
-          mensaje: 'Test webhook from appointment system',
-          timestamp: new Date().toISOString(),
+          webhook_url: formData.webhook_url,
         }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         setTestStatus('success');
         setTimeout(() => setTestStatus(null), 3000);
       } else {
