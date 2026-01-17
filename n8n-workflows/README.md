@@ -1,5 +1,10 @@
 # 🚀 Workflows de n8n para Sistema de Citas
 
+## 📦 Workflows Disponibles
+
+- **`crear-cita-manual.json`** - Para desarrollo local (localhost:5000)
+- **`crear-cita-produccion.json`** - Para VM producción (34.57.154.181:5000)
+
 ## 📥 Cómo Importar el Workflow
 
 ### Opción 1: Desde la interfaz de n8n
@@ -226,10 +231,81 @@ Una vez que este flujo funcione, puedes:
 4. Crear la cita automáticamente
 5. Responder al cliente por WhatsApp
 
+## 🌐 Workflow de Producción (VM)
+
+### ¿Cuándo usar cada workflow?
+
+| Workflow | Usa cuando... | URL Backend |
+|----------|---------------|-------------|
+| `crear-cita-manual.json` | Estás desarrollando en local | `http://localhost:5000` |
+| `crear-cita-produccion.json` | n8n está en la VM | `http://34.57.154.181:5000` |
+
+### 🚀 Configuración en la VM
+
+Si tu n8n está corriendo en la VM (http://34.57.154.181:5678):
+
+1. **Importa el workflow de producción:**
+   ```
+   Archivo: crear-cita-produccion.json
+   ```
+
+2. **Las URLs ya están configuradas:**
+   ```
+   Backend: http://34.57.154.181:5000/api/n8n/...
+   API Key: f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788
+   ```
+
+3. **Ejecuta el workflow:**
+   - Haz clic en "Execute Workflow"
+   - Verifica el resultado en el último nodo
+
+### 📝 URLs de Producción
+
+```
+Frontend:  http://34.57.154.181.sslip.io:5173
+Backend:   http://34.57.154.181:5000/api
+n8n:       http://34.57.154.181:5678
+```
+
+**Endpoints API:**
+```
+http://34.57.154.181:5000/api/n8n/servicios/listar
+http://34.57.154.181:5000/api/n8n/citas/disponibilidad
+http://34.57.154.181:5000/api/n8n/clientes/buscar
+http://34.57.154.181:5000/api/n8n/clientes/crear
+http://34.57.154.181:5000/api/n8n/citas/crear
+```
+
+### 🔑 Verificar Conexión
+
+Antes de ejecutar el workflow en producción, verifica que el backend responda:
+
+```bash
+# Desde la VM o tu navegador
+curl http://34.57.154.181:5000/api/health
+
+# Debería responder:
+{
+  "status": "ok",
+  "timestamp": "2026-01-17T...",
+  "uptime": 123.45
+}
+```
+
 ## 🎓 Recursos
 
 - **Documentación API**: Ver `ARQUITECTURA-API.md` en la raíz del proyecto
-- **Backend URL**: http://localhost:5000
-- **Frontend URL**: http://localhost:5173
+- **Deploy a VM**: Ver `deploy/README.md` para instrucciones completas
 - **API Key**: `f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788`
 - **Tenant ID**: `f0db1afa-6f46-461d-95a9-65aed91f66ca`
+
+### URLs por Entorno:
+
+**Desarrollo (Local):**
+- Backend: http://localhost:5000
+- Frontend: http://localhost:5173
+
+**Producción (VM):**
+- Backend: http://34.57.154.181:5000
+- Frontend: http://34.57.154.181.sslip.io:5173
+- n8n: http://34.57.154.181:5678
