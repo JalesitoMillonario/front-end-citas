@@ -33,11 +33,14 @@ const Settings = () => {
 
   const handleSaveAdvancedSettings = async (advancedConfig) => {
     try {
+      console.log('💾 Guardando config avanzada:', advancedConfig);
       // Guardar en el campo config del negocio
-      await negocioAPI.actualizarConfig({ config: advancedConfig });
+      const response = await negocioAPI.actualizarConfig({ config: advancedConfig });
+      console.log('✅ Respuesta del servidor:', response.data);
       alert('Configuración avanzada guardada exitosamente');
       await loadTenantConfig();
     } catch (error) {
+      console.error('❌ Error al guardar config:', error);
       alert(error.response?.data?.message || 'Error al guardar configuración avanzada');
     }
   };

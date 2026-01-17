@@ -102,8 +102,10 @@ export const obtenerConfig = (req, res) => {
     }
 
     // Parsear JSON fields
+    console.log('📖 Config en DB (raw):', negocio.config);
     const config = negocio.config ? JSON.parse(negocio.config) : {};
     const horario = negocio.horario ? JSON.parse(negocio.horario) : {};
+    console.log('📖 Config parseado:', JSON.stringify(config, null, 2));
 
     res.json({
       tenant_id: negocio.tenant_id,
@@ -118,6 +120,7 @@ export const obtenerConfig = (req, res) => {
       config,
     });
   } catch (error) {
+    console.error('❌ Error al obtener configuración:', error);
     res.status(500).json({ error: 'Error al obtener configuración' });
   }
 };
@@ -135,6 +138,9 @@ export const actualizarConfig = (req, res) => {
       config,
     } = req.body;
 
+    console.log('📝 Actualizando config para tenant:', tenantId);
+    console.log('📝 Config recibido:', JSON.stringify(config, null, 2));
+
     const updates = [];
     const params = [];
 
@@ -148,14 +154,18 @@ export const actualizarConfig = (req, res) => {
     updates.push('updated_at = CURRENT_TIMESTAMP');
     params.push(tenantId);
 
-    run(
-      `UPDATE negocios SET ${updates.join(', ')} WHERE tenant_id = ?`,
-      params
-    );
+    const query = `UPDATE negocios SET ${updates.join(', ')} WHERE tenant_id = ?`;
+    console.log('📝 SQL Query:', query);
+    console.log('📝 SQL Params:', params);
+
+    run(query, params);
 
     const negocio = getOne('SELECT * FROM negocios WHERE tenant_id = ?', [tenantId]);
+    console.log('✅ Config guardado. Verificando en DB:', negocio?.config);
+
     res.json(negocio);
   } catch (error) {
+    console.error('❌ Error al actualizar configuración:', error);
     res.status(500).json({ error: 'Error al actualizar configuración' });
   }
 };

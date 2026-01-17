@@ -56,6 +56,8 @@ const AdvancedSettings = ({ config, onSave }) => {
 
     try {
       const token = localStorage.getItem('token');
+      console.log('🧪 Testing webhook:', formData.webhook_url);
+
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/test/webhook`, {
         method: 'POST',
         headers: {
@@ -68,16 +70,21 @@ const AdvancedSettings = ({ config, onSave }) => {
       });
 
       const data = await response.json();
+      console.log('🧪 Webhook test response:', data);
 
       if (response.ok && data.success) {
+        console.log('✅ Webhook test successful');
         setTestStatus('success');
         setTimeout(() => setTestStatus(null), 3000);
       } else {
+        console.error('❌ Webhook test failed:', data);
+        alert(`Webhook test failed: ${data.error || 'Unknown error'}\nDetails: ${data.details || 'N/A'}`);
         setTestStatus('error');
         setTimeout(() => setTestStatus(null), 3000);
       }
     } catch (error) {
-      console.error('Webhook test error:', error);
+      console.error('❌ Webhook test error:', error);
+      alert(`Network error testing webhook: ${error.message}`);
       setTestStatus('error');
       setTimeout(() => setTestStatus(null), 3000);
     }

@@ -127,27 +127,41 @@ app.post('/api/test/webhook', verifyTenant, async (req, res) => {
       return res.status(400).json({ error: 'webhook_url is required' });
     }
 
+    console.log('🧪 Testing webhook:', webhook_url);
+
     const axios = (await import('axios')).default;
 
     const payload = {
       evento: 'test',
       mensaje: 'Test webhook from appointment system',
       timestamp: new Date().toISOString(),
+      tenant_id: req.tenantId,
     };
 
-    await axios.post(webhook_url, payload, {
+    console.log('🧪 Sending payload:', payload);
+
+    const response = await axios.post(webhook_url, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
       timeout: 10000,
     });
 
+    console.log('✅ Webhook test successful. Status:', response.status);
+
     res.json({ success: true, message: 'Webhook test successful' });
   } catch (error) {
-    console.error('Webhook test error:', error.message);
+    console.error('❌ Webhook test error:', error.message);
+    console.error('❌ Error details:', {
+      code: error.code,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
+
     res.status(500).json({
       success: false,
-      error: error.message || 'Connection error'
+      error: error.message || 'Connection error',
+      details: error.code || error.response?.status,
     });
   }
 });
