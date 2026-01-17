@@ -80,7 +80,7 @@ const servicios = [
 ];
 
 const stmt = db.prepare(`
-  INSERT INTO servicios (tenant_id, nombre, descripcion, precio, duracion_minutos, activo, categoria)
+  INSERT INTO servicios (tenant_id, nombre, descripcion, precio, duracion, activo, categoria)
   VALUES (?, ?, ?, ?, ?, 1, ?)
 `);
 
@@ -119,7 +119,7 @@ console.log(`   Total de servicios: ${servicios.length}`);
 console.log(`\n📋 Servicios en la base de datos:\n`);
 const todosServicios = db.prepare('SELECT * FROM servicios WHERE tenant_id = ?').all(tenantId);
 todosServicios.forEach((s, i) => {
-  console.log(`${i + 1}. [ID: ${s.servicio_id}] ${s.nombre} - ${s.precio}€ (${s.duracion_minutos} min)`);
+  console.log(`${i + 1}. [ID: ${s.servicio_id}] ${s.nombre} - ${s.precio}€ (${s.duracion} min)`);
 });
 
 db.close();
