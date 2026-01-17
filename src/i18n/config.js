@@ -25,6 +25,9 @@ i18n
     fallbackLng: 'es', // Idioma por defecto
     debug: false,
 
+    // Normalizar códigos de idioma
+    load: 'languageOnly', // Solo usar 'es' en lugar de 'es-ES'
+
     interpolation: {
       escapeValue: false, // React ya escapa por defecto
     },
@@ -36,6 +39,8 @@ i18n
       lookupLocalStorage: 'preferred_language',
       // Cache del idioma
       caches: ['localStorage'],
+      // Convertir códigos como 'es-ES' a 'es'
+      convertDetectedLanguage: (lng) => lng.split('-')[0],
     },
   });
 
