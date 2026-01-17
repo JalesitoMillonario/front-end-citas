@@ -3,14 +3,13 @@ import { Settings as SettingsIcon, Save, AlertCircle, CheckCircle, Webhook } fro
 
 const AdvancedSettings = ({ config, onSave }) => {
   const [formData, setFormData] = useState({
-    webhook_recordatorios_url: '',
-    webhook_eventos_url: '',
+    webhook_url: '',
     webhooks_activos: true,
     recordatorio_horas_antes: 12,
     recordatorio_activo: true,
     enviar_confirmacion_automatica: true,
     permitir_cancelacion_cliente: true,
-    tiempo_minimo_cancelacion: 2, // horas
+    tiempo_minimo_cancelacion: 2,
     intervalo_slots_minutos: 30,
   });
 
@@ -20,8 +19,7 @@ const AdvancedSettings = ({ config, onSave }) => {
   useEffect(() => {
     if (config) {
       setFormData({
-        webhook_recordatorios_url: config.webhook_recordatorios_url || '',
-        webhook_eventos_url: config.webhook_eventos_url || '',
+        webhook_url: config.webhook_url || '',
         webhooks_activos: config.webhooks_activos !== false,
         recordatorio_horas_antes: config.recordatorio_horas_antes || 12,
         recordatorio_activo: config.recordatorio_activo !== false,
@@ -44,28 +42,27 @@ const AdvancedSettings = ({ config, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     await onSave(formData);
     setLoading(false);
   };
 
   const testWebhook = async () => {
-    if (!formData.webhook_recordatorios_url) {
-      alert('Por favor ingresa una URL de webhook primero');
+    if (!formData.webhook_url) {
+      alert('Please enter a webhook URL first');
       return;
     }
 
     setTestStatus('testing');
 
     try {
-      const response = await fetch(formData.webhook_recordatorios_url, {
+      const response = await fetch(formData.webhook_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          tipo: 'test',
-          mensaje: 'Prueba de webhook desde el sistema de citas',
+          evento: 'test',
+          mensaje: 'Test webhook from appointment system',
           timestamp: new Date().toISOString(),
         }),
       });
@@ -78,7 +75,7 @@ const AdvancedSettings = ({ config, onSave }) => {
         setTimeout(() => setTestStatus(null), 3000);
       }
     } catch (error) {
-      console.error('Error al probar webhook:', error);
+      console.error('Webhook test error:', error);
       setTestStatus('error');
       setTimeout(() => setTestStatus(null), 3000);
     }
@@ -86,134 +83,102 @@ const AdvancedSettings = ({ config, onSave }) => {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-orange-100 rounded-lg">
-          <SettingsIcon className="w-6 h-6 text-orange-600" />
+      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+        <div className="p-2 bg-gray-900 rounded-lg">
+          <SettingsIcon className="w-6 h-6 text-white" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
-            Configuración Avanzada
+            Advanced Configuration
           </h3>
           <p className="text-sm text-gray-600">
-            Configuración específica para tu negocio y integraciones
+            Business-specific configuration and integrations
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Webhook para Recordatorios */}
-        <div className="border-l-4 border-blue-500 pl-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Unified Webhook */}
+        <div className="space-y-4">
           <div className="flex items-center gap-2 mb-3">
-            <Webhook className="w-5 h-5 text-blue-600" />
-            <h4 className="font-semibold text-gray-900">
-              Webhook de Recordatorios
-            </h4>
+            <Webhook className="w-5 h-5 text-gray-900" />
+            <h4 className="font-semibold text-gray-900">Webhook Integration</h4>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                URL del Webhook (n8n)
-              </label>
-              <input
-                type="url"
-                name="webhook_recordatorios_url"
-                value={formData.webhook_recordatorios_url}
-                onChange={handleChange}
-                placeholder="https://tu-n8n.com/webhook/recordatorio-cita"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                URL del webhook de n8n donde se enviarán los recordatorios automáticos
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={testWebhook}
-                disabled={!formData.webhook_recordatorios_url || testStatus === 'testing'}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {testStatus === 'testing' ? 'Probando...' : 'Probar Webhook'}
-              </button>
-
-              {testStatus === 'success' && (
-                <div className="flex items-center gap-2 text-green-600">
-                  <CheckCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Webhook funciona correctamente</span>
-                </div>
-              )}
-
-              {testStatus === 'error' && (
-                <div className="flex items-center gap-2 text-red-600">
-                  <AlertCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Error al conectar con webhook</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Webhook para Eventos */}
-        <div className="border-l-4 border-indigo-500 pl-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Webhook className="w-5 h-5 text-indigo-600" />
-            <h4 className="font-semibold text-gray-900">
-              Webhook de Eventos
-            </h4>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-gray-700 mb-2 font-medium">Unified Webhook</p>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              All events are sent to the same webhook URL. Use the "evento" field to distinguish:
+              <span className="block mt-2 font-mono text-xs bg-white p-2 rounded border border-gray-200">
+                cita_creada, cita_actualizada, cita_cancelada, cita_confirmada, cita_completada, recordatorio_enviado
+              </span>
+            </p>
           </div>
 
-          <div className="space-y-4">
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-3">
-              <p className="text-sm text-indigo-800">
-                <strong>Eventos disponibles:</strong> cita_creada, cita_actualizada, cita_cancelada, cita_confirmada, cita_completada
-              </p>
-            </div>
+          <div className="flex items-center gap-3 mb-3">
+            <input
+              type="checkbox"
+              id="webhooks_activos"
+              name="webhooks_activos"
+              checked={formData.webhooks_activos}
+              onChange={handleChange}
+              className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+            />
+            <label htmlFor="webhooks_activos" className="text-sm font-medium text-gray-700">
+              Enable webhooks
+            </label>
+          </div>
 
-            <div className="flex items-center gap-3 mb-3">
-              <input
-                type="checkbox"
-                id="webhooks_activos"
-                name="webhooks_activos"
-                checked={formData.webhooks_activos}
-                onChange={handleChange}
-                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="webhooks_activos" className="text-sm font-medium text-gray-700">
-                Activar webhooks de eventos
-              </label>
-            </div>
-
-            {formData.webhooks_activos && (
+          {formData.webhooks_activos && (
+            <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  URL del Webhook de Eventos (n8n)
+                  Webhook URL (n8n)
                 </label>
                 <input
                   type="url"
-                  name="webhook_eventos_url"
-                  value={formData.webhook_eventos_url}
+                  name="webhook_url"
+                  value={formData.webhook_url}
                   onChange={handleChange}
-                  placeholder="https://tu-n8n.com/webhook/eventos-citas"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://your-n8n.com/webhook/appointments"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  URL donde se enviarán todos los eventos (crear, actualizar, cancelar, confirmar, completar citas)
-                </p>
-                <p className="text-xs text-gray-600 mt-2 font-medium">
-                  💡 Cada webhook incluye un campo "evento" para distinguir el tipo de acción
+                  All events will be sent to this URL
                 </p>
               </div>
-            )}
-          </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={testWebhook}
+                  disabled={!formData.webhook_url || testStatus === 'testing'}
+                  className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {testStatus === 'testing' ? 'Testing...' : 'Test Webhook'}
+                </button>
+
+                {testStatus === 'success' && (
+                  <div className="flex items-center gap-2 text-green-700">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="text-sm font-medium">Webhook works correctly</span>
+                  </div>
+                )}
+
+                {testStatus === 'error' && (
+                  <div className="flex items-center gap-2 text-red-700">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="text-sm font-medium">Connection error</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Configuración de Recordatorios */}
-        <div className="border-l-4 border-green-500 pl-4">
-          <h4 className="font-semibold text-gray-900 mb-3">
-            Recordatorios Automáticos
-          </h4>
+        {/* Reminders */}
+        <div className="border-t border-gray-200 pt-8">
+          <h4 className="font-semibold text-gray-900 mb-4">Automatic Reminders</h4>
 
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -223,44 +188,39 @@ const AdvancedSettings = ({ config, onSave }) => {
                 name="recordatorio_activo"
                 checked={formData.recordatorio_activo}
                 onChange={handleChange}
-                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
               />
               <label htmlFor="recordatorio_activo" className="text-sm font-medium text-gray-700">
-                Activar recordatorios automáticos
+                Enable automatic reminders
               </label>
             </div>
 
             {formData.recordatorio_activo && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Enviar recordatorio (horas antes de la cita)
+                  Send reminder (hours before appointment)
                 </label>
                 <select
                   name="recordatorio_horas_antes"
                   value={formData.recordatorio_horas_antes}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                 >
-                  <option value="1">1 hora antes</option>
-                  <option value="2">2 horas antes</option>
-                  <option value="6">6 horas antes</option>
-                  <option value="12">12 horas antes</option>
-                  <option value="24">24 horas antes (1 día)</option>
-                  <option value="48">48 horas antes (2 días)</option>
+                  <option value="1">1 hour before</option>
+                  <option value="2">2 hours before</option>
+                  <option value="6">6 hours before</option>
+                  <option value="12">12 hours before</option>
+                  <option value="24">24 hours before (1 day)</option>
+                  <option value="48">48 hours before (2 days)</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  El sistema revisará cada 30 minutos y enviará recordatorios automáticamente
-                </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Configuración de Citas */}
-        <div className="border-l-4 border-purple-500 pl-4">
-          <h4 className="font-semibold text-gray-900 mb-3">
-            Gestión de Citas
-          </h4>
+        {/* Appointment Management */}
+        <div className="border-t border-gray-200 pt-8">
+          <h4 className="font-semibold text-gray-900 mb-4">Appointment Management</h4>
 
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -270,10 +230,10 @@ const AdvancedSettings = ({ config, onSave }) => {
                 name="enviar_confirmacion_automatica"
                 checked={formData.enviar_confirmacion_automatica}
                 onChange={handleChange}
-                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
               />
               <label htmlFor="enviar_confirmacion_automatica" className="text-sm font-medium text-gray-700">
-                Enviar confirmación automática al crear cita
+                Send automatic confirmation when creating appointment
               </label>
             </div>
 
@@ -284,17 +244,17 @@ const AdvancedSettings = ({ config, onSave }) => {
                 name="permitir_cancelacion_cliente"
                 checked={formData.permitir_cancelacion_cliente}
                 onChange={handleChange}
-                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
               />
               <label htmlFor="permitir_cancelacion_cliente" className="text-sm font-medium text-gray-700">
-                Permitir que clientes cancelen por WhatsApp/chatbot
+                Allow clients to cancel via WhatsApp/chatbot
               </label>
             </div>
 
             {formData.permitir_cancelacion_cliente && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tiempo mínimo para cancelar (horas antes)
+                  Minimum time to cancel (hours before)
                 </label>
                 <input
                   type="number"
@@ -303,70 +263,44 @@ const AdvancedSettings = ({ config, onSave }) => {
                   onChange={handleChange}
                   min="0"
                   max="72"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Clientes no podrán cancelar si falta menos de este tiempo
-                </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Configuración de Disponibilidad */}
-        <div className="border-l-4 border-yellow-500 pl-4">
-          <h4 className="font-semibold text-gray-900 mb-3">
-            Disponibilidad y Horarios
-          </h4>
+        {/* Availability */}
+        <div className="border-t border-gray-200 pt-8">
+          <h4 className="font-semibold text-gray-900 mb-4">Availability and Schedule</h4>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Intervalo entre slots de citas (minutos)
-              </label>
-              <select
-                name="intervalo_slots_minutos"
-                value={formData.intervalo_slots_minutos}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="15">15 minutos</option>
-                <option value="30">30 minutos</option>
-                <option value="45">45 minutos</option>
-                <option value="60">60 minutos</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Intervalo de tiempo entre slots disponibles al consultar disponibilidad
-              </p>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Slot interval (minutes)
+            </label>
+            <select
+              name="intervalo_slots_minutos"
+              value={formData.intervalo_slots_minutos}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+            >
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60">60 minutes</option>
+            </select>
           </div>
         </div>
 
-        {/* Aviso Importante */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-1">Importante:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Estos ajustes son específicos para tu negocio</li>
-                <li>Los cambios se aplican inmediatamente</li>
-                <li>Asegúrate de tener n8n configurado antes de activar recordatorios</li>
-                <li>Prueba el webhook antes de activar los recordatorios</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Botón de guardar */}
-        <div className="flex justify-end pt-4 border-t border-gray-200">
+        {/* Save button */}
+        <div className="flex justify-end pt-6 border-t border-gray-200">
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 font-medium"
           >
             <Save className="w-5 h-5" />
-            {loading ? 'Guardando...' : 'Guardar Configuración'}
+            {loading ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       </form>

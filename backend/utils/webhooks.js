@@ -16,7 +16,8 @@ export const EVENTOS_WEBHOOK = {
 };
 
 /**
- * Envía un webhook a n8n con información del evento
+ * Envía un webhook UNIFICADO a n8n con información del evento
+ * TODOS los eventos van al mismo webhook
  * @param {string} tenantId - ID del tenant
  * @param {string} tipoEvento - Tipo de evento (usar EVENTOS_WEBHOOK)
  * @param {object} datos - Datos del evento
@@ -45,17 +46,17 @@ export async function enviarWebhook(tenantId, tipoEvento, datos) {
       return false;
     }
 
-    // Obtener URL del webhook (específica del tenant o global)
-    const webhookUrl = config.webhook_eventos_url || process.env.N8N_WEBHOOK_URL;
+    // WEBHOOK UNIFICADO: Usar la misma URL para TODO
+    const webhookUrl = config.webhook_url || process.env.N8N_WEBHOOK_URL;
 
     if (!webhookUrl) {
       console.log(`⚠️  No hay webhook configurado para tenant: ${tenantId}`);
       return false;
     }
 
-    // Preparar payload completo
+    // Preparar payload completo UNIFICADO
     const payload = {
-      evento: tipoEvento,
+      evento: tipoEvento, // Campo crítico para distinguir en n8n
       timestamp: new Date().toISOString(),
       negocio: {
         tenant_id: negocio.tenant_id,
@@ -204,20 +205,13 @@ export async function webhookCitaCompletada(tenantId, cita) {
 }
 
 /**
- * Envía webhook para recordatorio (ya existe en reminders.js pero lo centralizamos aquí)
+ * Envía webhook para recordatorio
+ * USA EL MISMO WEBHOOK UNIFICADO
  */
 export async function webhookRecordatorio(tenantId, cita, negocio) {
   const config = negocio.config ? JSON.parse(negocio.config) : {};
-  const webhookUrl = config.webhook_recordatorios_url || config.webhook_eventos_url || process.env.N8N_WEBHOOK_URL;
 
-  if (!webhookUrl) {
-    return false;
-  }
-
-  const payload = {
-    evento: EVENTOS_WEBHOOK.RECORDATORIO_ENVIADO,
-    timestamp: new Date().toISOString(),
-    tipo: 'recordatorio_cita',
+  return enviarWebhook(tenantId, EVENTOS_WEBHOOK.RECORDATORIO_ENVIADO, {
     cita: {
       cita_id: cita.cita_id,
       fecha: cita.fecha,
@@ -229,30 +223,9 @@ export async function webhookRecordatorio(tenantId, cita, negocio) {
       telefono: cita.cliente_telefono,
       email: cita.cliente_email,
     },
-    negocio: {
-      tenant_id: negocio.tenant_id,
-      nombre_negocio: negocio.nombre_negocio,
-      telefono: negocio.telefono,
-      direccion: negocio.direccion,
-    },
     config: {
       enviar_confirmacion: config.enviar_confirmacion_automatica !== false,
       permitir_cancelacion: config.permitir_cancelacion_cliente !== false,
     },
-  };
-
-  try {
-    await axios.post(webhookUrl, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Tenant-ID': tenantId,
-        'X-Event-Type': EVENTOS_WEBHOOK.RECORDATORIO_ENVIADO,
-      },
-      timeout: 10000,
-    });
-    return true;
-  } catch (error) {
-    console.error('Error al enviar webhook de recordatorio:', error.message);
-    return false;
-  }
+  });
 }

@@ -43,11 +43,11 @@ const Settings = () => {
   };
 
   const tabs = [
-    { id: 'business', label: 'Datos del Negocio', icon: '🏢' },
-    { id: 'schedule', label: 'Horarios', icon: '🕐' },
-    { id: 'integration', label: 'Integración n8n', icon: '🔗' },
-    { id: 'advanced', label: 'Configuración Avanzada', icon: '⚙️' },
-    { id: 'language', label: 'Idioma', icon: '🌐' },
+    { id: 'business', label: 'Business Data' },
+    { id: 'schedule', label: 'Schedule' },
+    { id: 'integration', label: 'n8n Integration' },
+    { id: 'advanced', label: 'Advanced' },
+    { id: 'language', label: 'Language' },
   ];
 
   return (
@@ -62,21 +62,20 @@ const Settings = () => {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <div className="flex gap-4 overflow-x-auto">
+        <div className="flex gap-1 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap
+                px-6 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap
                 ${
                   activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
+                    ? 'border-gray-900 text-gray-900'
                     : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
                 }
               `}
             >
-              <span className="text-lg">{tab.icon}</span>
               {tab.label}
             </button>
           ))}
