@@ -18,9 +18,18 @@ export const verifyToken = (req, res, next) => {
 };
 
 export const verifyTenant = (req, res, next) => {
+  // Debugging: log all headers
+  console.log('🔍 All headers:', Object.keys(req.headers));
+  console.log('🔍 Looking for tenant_id in:', {
+    header: req.headers['x-tenant-id'],
+    body: req.body?.tenant_id,
+    query: req.query?.tenant_id,
+  });
+
   const tenantId = req.headers['x-tenant-id'] || req.body.tenant_id || req.query.tenant_id;
 
   if (!tenantId) {
+    console.error('❌ Tenant ID no proporcionado');
     return res.status(400).json({ error: 'Tenant ID no proporcionado' });
   }
 
@@ -28,9 +37,11 @@ export const verifyTenant = (req, res, next) => {
   const tenant = getOne('SELECT tenant_id FROM negocios WHERE tenant_id = ?', [tenantId]);
 
   if (!tenant) {
+    console.error('❌ Negocio no encontrado para tenant_id:', tenantId);
     return res.status(404).json({ error: 'Negocio no encontrado' });
   }
 
+  console.log('✅ Tenant verificado:', tenantId);
   req.tenantId = tenantId;
   next();
 };

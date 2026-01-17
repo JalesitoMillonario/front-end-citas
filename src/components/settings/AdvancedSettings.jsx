@@ -70,14 +70,16 @@ const AdvancedSettings = ({ config, onSave }) => {
       });
 
       const data = await response.json();
-      console.log('🧪 Webhook test response:', data);
+      console.log('🧪 Webhook test response status:', response.status);
+      console.log('🧪 Webhook test response data:', JSON.stringify(data, null, 2));
 
       if (response.ok && data.success) {
         console.log('✅ Webhook test successful');
         setTestStatus('success');
         setTimeout(() => setTestStatus(null), 3000);
       } else {
-        console.error('❌ Webhook test failed:', data);
+        console.error('❌ Webhook test failed. Status:', response.status);
+        console.error('❌ Error data:', JSON.stringify(data, null, 2));
         alert(`Webhook test failed: ${data.error || 'Unknown error'}\nDetails: ${data.details || 'N/A'}`);
         setTestStatus('error');
         setTimeout(() => setTestStatus(null), 3000);
