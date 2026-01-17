@@ -56,13 +56,16 @@ const AdvancedSettings = ({ config, onSave }) => {
 
     try {
       const token = localStorage.getItem('token');
+      const tenantId = localStorage.getItem('tenant_id');
       console.log('🧪 Testing webhook:', formData.webhook_url);
+      console.log('🧪 Tenant ID:', tenantId);
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/test/webhook`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'X-Tenant-Id': tenantId,
         },
         body: JSON.stringify({
           webhook_url: formData.webhook_url,
