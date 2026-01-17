@@ -13,8 +13,6 @@
       "parameters": {
         "method": "GET",
         "url": "http://localhost:5000/api/n8n/servicios/listar",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
