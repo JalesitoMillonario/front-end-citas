@@ -15,8 +15,8 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Directorio del proyecto
-PROJECT_DIR="/home/user/front-end-citas"
+# Directorio del proyecto - CAMBIA ESTO A TU RUTA CORRECTA
+PROJECT_DIR="${PROJECT_DIR:-/home/jalesitomillonario/app/front-end-citas-claude-explain-codebase-mkgq7tl6s7o5ocfc-tclhN}"
 cd "$PROJECT_DIR"
 
 # Verificar que estamos en el directorio correcto
