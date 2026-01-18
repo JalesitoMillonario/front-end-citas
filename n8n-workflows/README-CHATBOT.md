@@ -16,6 +16,7 @@ Este es tu chatbot de WhatsApp adaptado para el sistema de citas de Beauty Cente
 ### Nuevas Funcionalidades (adaptadas para citas)
 - 🆕 **Consultar Disponibilidad** - Verifica horarios libres antes de agendar
 - 🆕 **Crear Citas** - Solo después de verificar disponibilidad
+- 🆕 **Modificar Citas** - Cambiar fecha/hora de cita existente por teléfono
 - 🆕 **Cancelar Citas** - Por teléfono y fecha, sin necesitar cita_id
 - 🆕 **Consultar Servicios** - Info de los 8 servicios disponibles
 - 🆕 **Prompt Personalizado** - Asistente de estética con los servicios reales
@@ -212,6 +213,51 @@ Bot: [GPT-4O analiza la imagen]
 Cliente: Sí, para el sábado
 
 Bot: [Consulta disponibilidad y sigue el flujo normal...]
+```
+
+### Ejemplo 4: Cliente quiere MODIFICAR una cita
+
+```
+Cliente: Hola, necesito cambiar mi cita del viernes
+
+Bot: Claro! 👍 Para modificar tu cita necesito:
+     - Tu teléfono
+     - Fecha actual de la cita
+     - Hora actual (si tienes varias ese día)
+
+Cliente: +34612345678, viernes 24 a las 11
+
+Bot: Perfecto. ¿Para qué día te gustaría cambiarla?
+
+Cliente: Para el lunes 27
+
+Bot: [El bot llama a consulta_disponibilidad]
+
+     Déjame ver disponibilidad para el lunes 27...
+
+     ✅ Horarios disponibles:
+     - 09:00
+     - 10:30
+     - 14:00
+     - 16:00
+
+     ¿Cuál prefieres?
+
+Cliente: 14:00
+
+Bot: [El bot llama a modificar_cita]
+
+     ✅ CITA MODIFICADA
+
+     ❌ Cita anterior:
+     📅 2026-01-24 a las 11:00
+
+     ✅ Cita nueva:
+     👤 María García
+     💅 Manicura (25€)
+     📅 2026-01-27 a las 14:00
+
+     ¡Nos vemos el lunes! 😊
 ```
 
 ## 🔧 Acciones del JSON Response
@@ -441,6 +487,56 @@ Content-Type: application/json
   }
 }
 ```
+
+### 4. Modificar Cita
+```http
+PUT http://34.57.154.181:5000/api/n8n/citas/modificar-por-telefono
+X-API-Key: f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788
+Content-Type: application/json
+
+{
+  "telefono": "+34612345678",
+  "fecha_actual": "2026-01-24",
+  "hora_actual": "11:00",
+  "nueva_fecha": "2026-01-27",
+  "nueva_hora": "14:00",
+  "nuevo_servicio_id": null
+}
+```
+
+**Parámetros:**
+- `telefono` (obligatorio): Teléfono del cliente
+- `fecha_actual` (obligatorio): Fecha de la cita que quiere cambiar
+- `hora_actual` (opcional): Hora actual, solo si hay múltiples citas ese día
+- `nueva_fecha` (obligatorio): Nueva fecha deseada
+- `nueva_hora` (obligatorio): Nueva hora deseada
+- `nuevo_servicio_id` (opcional): Si quiere cambiar también el servicio
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Cita modificada exitosamente",
+  "cita_anterior": {
+    "fecha": "2026-01-24",
+    "hora": "11:00",
+    "servicio": "Manicura"
+  },
+  "cita_nueva": {
+    "cliente": "María García",
+    "servicio": "Manicura",
+    "fecha": "2026-01-27",
+    "hora": "14:00",
+    "precio": "25"
+  }
+}
+```
+
+**Validaciones automáticas:**
+- ✅ Verifica que el nuevo horario esté disponible
+- ✅ Excluye la cita actual de la verificación de conflictos
+- ✅ Calcula automáticamente la hora_fin según duración del servicio
+- ✅ Permite cambiar el servicio opcionalmente
 
 ## 🗄️ Memoria y Persistencia
 

@@ -476,6 +476,147 @@ export const cancelarCitaPorTelefono = (req, res) => {
   }
 };
 
+// Modificar cita por teléfono (cambiar fecha/hora sin necesitar cita_id)
+export const modificarCitaPorTelefono = (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+    const { telefono, fecha_actual, hora_actual, nueva_fecha, nueva_hora, nuevo_servicio_id } = req.body;
+
+    if (!telefono || !fecha_actual || !nueva_fecha || !nueva_hora) {
+      return res.status(400).json({
+        error: 'Teléfono, fecha_actual, nueva_fecha y nueva_hora son obligatorios'
+      });
+    }
+
+    // Buscar la cita actual
+    let query = `
+      SELECT
+        c.*,
+        cl.nombre as cliente_nombre,
+        cl.telefono as cliente_telefono,
+        cl.email as cliente_email,
+        s.nombre as servicio_nombre,
+        s.precio as precio_servicio,
+        s.duracion_minutos as duracion_minutos
+       FROM citas c
+       JOIN clientes cl ON c.cliente_id = cl.cliente_id
+       JOIN servicios s ON c.servicio_id = s.servicio_id
+       WHERE c.tenant_id = ?
+       AND cl.telefono = ?
+       AND c.fecha = ?
+       AND c.estado NOT IN ('cancelada', 'completada')
+    `;
+
+    const params = [tenantId, telefono, fecha_actual];
+
+    // Si se proporciona hora_actual, buscar cita específica
+    if (hora_actual) {
+      query += ' AND c.hora_inicio = ?';
+      params.push(hora_actual);
+    }
+
+    query += ' LIMIT 1';
+
+    const citaActual = getOne(query, params);
+
+    if (!citaActual) {
+      return res.status(404).json({
+        error: 'No se encontró ninguna cita para ese teléfono y fecha'
+      });
+    }
+
+    // Determinar el servicio a usar (el nuevo o el actual)
+    const servicioIdFinal = nuevo_servicio_id || citaActual.servicio_id;
+
+    // Obtener duración del servicio
+    const servicio = getOne(
+      'SELECT duracion_minutos, nombre FROM servicios WHERE servicio_id = ? AND tenant_id = ?',
+      [servicioIdFinal, tenantId]
+    );
+
+    if (!servicio) {
+      return res.status(404).json({ error: 'Servicio no encontrado' });
+    }
+
+    // Calcular hora_fin basada en duración
+    const [nuevaHora, nuevosMinutos] = nueva_hora.split(':').map(Number);
+    const minutosInicio = nuevaHora * 60 + nuevosMinutos;
+    const minutosFin = minutosInicio + servicio.duracion_minutos;
+    const horaFin = Math.floor(minutosFin / 60);
+    const minutosFin2 = minutosFin % 60;
+    const nuevaHoraFin = `${String(horaFin).padStart(2, '0')}:${String(minutosFin2).padStart(2, '0')}`;
+
+    // Verificar disponibilidad en el nuevo horario (excluyendo la cita actual)
+    const conflicto = getOne(
+      `SELECT cita_id FROM citas
+       WHERE tenant_id = ?
+       AND fecha = ?
+       AND cita_id != ?
+       AND estado NOT IN ('cancelada', 'completada')
+       AND (
+         (hora_inicio < ? AND hora_fin > ?) OR
+         (hora_inicio < ? AND hora_fin > ?) OR
+         (hora_inicio >= ? AND hora_fin <= ?)
+       )`,
+      [tenantId, nueva_fecha, citaActual.cita_id, nuevaHoraFin, nueva_hora, nuevaHoraFin, nueva_hora, nueva_hora, nuevaHoraFin]
+    );
+
+    if (conflicto) {
+      return res.status(409).json({
+        error: 'El nuevo horario no está disponible, hay otra cita reservada'
+      });
+    }
+
+    // Actualizar la cita
+    run(
+      `UPDATE citas
+       SET fecha = ?, hora_inicio = ?, hora_fin = ?, servicio_id = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE cita_id = ?`,
+      [nueva_fecha, nueva_hora, nuevaHoraFin, servicioIdFinal, citaActual.cita_id]
+    );
+
+    // Obtener la cita actualizada
+    const citaActualizada = getOne(
+      `SELECT
+        c.*,
+        cl.nombre as cliente_nombre,
+        cl.telefono as cliente_telefono,
+        s.nombre as servicio_nombre,
+        s.precio as precio_servicio
+       FROM citas c
+       JOIN clientes cl ON c.cliente_id = cl.cliente_id
+       JOIN servicios s ON c.servicio_id = s.servicio_id
+       WHERE c.cita_id = ?`,
+      [citaActual.cita_id]
+    );
+
+    // Enviar webhook de cita modificada
+    webhookCitaActualizada(tenantId, citaActualizada).catch(err =>
+      console.error('Error en webhook cita modificada:', err)
+    );
+
+    res.json({
+      success: true,
+      message: 'Cita modificada exitosamente',
+      cita_anterior: {
+        fecha: citaActual.fecha,
+        hora: citaActual.hora_inicio,
+        servicio: citaActual.servicio_nombre
+      },
+      cita_nueva: {
+        cliente: citaActualizada.cliente_nombre,
+        servicio: citaActualizada.servicio_nombre,
+        fecha: citaActualizada.fecha,
+        hora: citaActualizada.hora_inicio,
+        precio: citaActualizada.precio_servicio
+      }
+    });
+  } catch (error) {
+    console.error('Error al modificar cita por teléfono:', error);
+    res.status(500).json({ error: 'Error al modificar la cita' });
+  }
+};
+
 // Consultar disponibilidad
 export const consultarDisponibilidad = (req, res) => {
   try {

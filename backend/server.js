@@ -113,6 +113,9 @@ app.delete('/api/n8n/citas/cancelar/:id', verifyApiKey, citasController.cancelar
 // Cancelar cita por teléfono (sin cita_id) - MÁS SIMPLE PARA N8N
 app.post('/api/n8n/citas/cancelar-por-telefono', verifyApiKey, citasController.cancelarCitaPorTelefono);
 
+// Modificar cita por teléfono (cambiar fecha/hora sin cita_id) - SIMPLE PARA N8N
+app.put('/api/n8n/citas/modificar-por-telefono', verifyApiKey, citasController.modificarCitaPorTelefono);
+
 // Actualizar cita desde n8n
 app.put('/api/n8n/citas/actualizar/:id', verifyApiKey, citasController.actualizarCita);
 
