@@ -16,8 +16,8 @@
             {
               "id": "1",
               "name": "servicio_id",
-              "value": 1,
-              "type": "number"
+              "value": "563e5cc9-ff3c-4e7e-ba35-4d797017e32a",
+              "type": "string"
             },
             {
               "id": "2",
@@ -155,7 +155,7 @@
               "id": "1",
               "name": "cliente_id",
               "value": "={{ $json.cliente_id }}",
-              "type": "number"
+              "type": "string"
             },
             {
               "id": "2",
@@ -204,7 +204,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"cliente_id\": {{ $json.cliente_id }},\n  \"servicio_id\": {{ $json.servicio_id }},\n  \"fecha\": \"{{ $json.fecha_cita }}\",\n  \"hora_inicio\": \"{{ $json.hora_inicio }}\",\n  \"notas\": \"Cita de prueba creada desde n8n\"\n}",
+        "jsonBody": "={\n  \"cliente_id\": \"{{ $json.cliente_id }}\",\n  \"servicio_id\": \"{{ $json.servicio_id }}\",\n  \"fecha\": \"{{ $json.fecha_cita }}\",\n  \"hora_inicio\": \"{{ $json.hora_inicio }}\",\n  \"notas\": \"Cita de prueba creada desde n8n\"\n}",
         "options": {}
       },
       "id": "d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a",
