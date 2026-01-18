@@ -12,6 +12,7 @@ import * as citasController from './controllers/citasController.js';
 import * as serviciosController from './controllers/serviciosController.js';
 import * as clientesController from './controllers/clientesController.js';
 import * as authController from './controllers/authController.js';
+import * as settingsController from './controllers/settingsController.js';
 
 // Middleware
 import { verifyToken, verifyTenant, verifyApiKey } from './middleware/auth.js';
@@ -76,6 +77,11 @@ app.delete('/api/citas/cancelar/:id', verifyTenant, citasController.cancelarCita
 app.get('/api/servicios/listar', verifyTenant, serviciosController.listarServicios);
 app.post('/api/servicios/crear', verifyTenant, serviciosController.crearServicio);
 app.put('/api/servicios/actualizar/:id', verifyTenant, serviciosController.actualizarServicio);
+
+// Configuración / Settings
+app.get('/api/settings', verifyTenant, settingsController.obtenerConfiguracion);
+app.put('/api/settings', verifyTenant, settingsController.actualizarConfiguracion);
+app.put('/api/settings/webhook', verifyTenant, settingsController.actualizarWebhookUrl);
 app.delete('/api/servicios/:id', verifyTenant, serviciosController.eliminarServicio);
 
 // Clientes

@@ -131,11 +131,35 @@ export const crearCita = (req, res) => {
   }
 };
 
+// Función helper: Limpiar citas canceladas antiguas (>1 hora)
+const limpiarCitasCanceladasAntiguas = (tenantId) => {
+  try {
+    // Borrar citas canceladas con más de 1 hora de antigüedad
+    const query = `
+      DELETE FROM citas
+      WHERE tenant_id = ?
+      AND estado = 'cancelada'
+      AND datetime(updated_at, '+1 hour') < datetime('now')
+    `;
+
+    const result = run(query, [tenantId]);
+
+    if (result && result.changes > 0) {
+      console.log(`🗑️  Limpiadas ${result.changes} citas canceladas antiguas para tenant ${tenantId}`);
+    }
+  } catch (error) {
+    console.error('Error limpiando citas canceladas:', error);
+  }
+};
+
 // Listar citas
 export const listarCitas = (req, res) => {
   try {
     const tenantId = req.tenantId;
     const { fecha_inicio, fecha_fin, cliente_id, estado } = req.query;
+
+    // Limpiar citas canceladas antiguas antes de listar
+    limpiarCitasCanceladasAntiguas(tenantId);
 
     let query = `
       SELECT

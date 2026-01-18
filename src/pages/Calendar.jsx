@@ -15,6 +15,14 @@ const Calendar = () => {
 
   useEffect(() => {
     loadAppointments();
+
+    // Auto-refresh cada 5 segundos
+    const intervalId = setInterval(() => {
+      loadAppointments();
+    }, 5000);
+
+    // Limpiar interval al desmontar componente
+    return () => clearInterval(intervalId);
   }, []);
 
   const loadAppointments = async () => {

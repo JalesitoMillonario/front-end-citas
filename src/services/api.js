@@ -79,10 +79,11 @@ export const serviciosAPI = {
 
 // ============ NEGOCIO/CONFIGURACIÓN ============
 export const negocioAPI = {
-  obtenerConfig: (params) => api.get('/negocio/config', { params }),
-  actualizarConfig: (data) => api.put('/negocio/config', data),
-  obtenerHorario: (params) => api.get('/negocio/horario', { params }),
-  actualizarHorario: (data) => api.put('/negocio/horario', data),
+  obtenerConfig: (params) => api.get('/settings', { params }),
+  actualizarConfig: (data) => api.put('/settings', data),
+  obtenerHorario: (params) => api.get('/settings', { params }),
+  actualizarHorario: (data) => api.put('/settings', { horario: data.horario }),
+  actualizarWebhook: (webhook_url) => api.put('/settings/webhook', { webhook_url }),
 };
 
 export default api;
