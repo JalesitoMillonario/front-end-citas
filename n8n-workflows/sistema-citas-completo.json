@@ -57,12 +57,6 @@
             },
             {
               "id": "8",
-              "name": "cita_id",
-              "value": "",
-              "type": "string"
-            },
-            {
-              "id": "9",
               "name": "motivo_cancelacion",
               "value": "Cliente canceló",
               "type": "string"
@@ -255,8 +249,8 @@
     },
     {
       "parameters": {
-        "method": "DELETE",
-        "url": "=http://34.57.154.181:5000/api/n8n/citas/cancelar/{{ $json.cita_id }}",
+        "method": "POST",
+        "url": "http://34.57.154.181:5000/api/n8n/citas/cancelar-por-telefono",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -272,7 +266,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"motivo\": \"{{ $json.motivo_cancelacion }}\"\n}",
+        "jsonBody": "={\n  \"telefono\": \"{{ $json.cliente_telefono }}\",\n  \"fecha\": \"{{ $json.fecha }}\",\n  \"hora\": \"{{ $json.hora }}\",\n  \"motivo\": \"{{ $json.motivo_cancelacion }}\"\n}",
         "options": {}
       },
       "id": "http-cancelar",
@@ -313,7 +307,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Formatear resultado de cancelación\nconst data = $input.first().json;\n\nconst resultado = {\n  accion: 'cancelar',\n  success: data.success,\n  mensaje: `❌ CITA CANCELADA\\n${data.message}`\n};\n\nreturn { json: resultado };"
+        "jsCode": "// Formatear resultado de cancelación\nconst data = $input.first().json;\n\nconst resultado = {\n  accion: 'cancelar',\n  success: data.success,\n  cita_cancelada: data.cita_cancelada,\n  mensaje: `❌ CITA CANCELADA\\n${data.message}\\n\\n👤 Cliente: ${data.cita_cancelada?.cliente || 'N/A'}\\n💆‍♀️ Servicio: ${data.cita_cancelada?.servicio || 'N/A'}\\n📅 Fecha: ${data.cita_cancelada?.fecha || 'N/A'}\\n🕐 Hora: ${data.cita_cancelada?.hora || 'N/A'}`\n};\n\nreturn { json: resultado };"
       },
       "id": "format-cancelar",
       "name": "✨ Formatear Cancelar",

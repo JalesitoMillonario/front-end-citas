@@ -377,6 +377,81 @@ export const cancelarCita = (req, res) => {
   }
 };
 
+// Cancelar cita por teléfono y fecha (sin necesitar cita_id)
+export const cancelarCitaPorTelefono = (req, res) => {
+  try {
+    const tenantId = req.tenantId;
+    const { telefono, fecha, hora, motivo } = req.body;
+
+    if (!telefono || !fecha) {
+      return res.status(400).json({
+        error: 'Teléfono y fecha son obligatorios'
+      });
+    }
+
+    // Buscar cita(s) del cliente en esa fecha
+    let query = `
+      SELECT
+        c.*,
+        cl.nombre as cliente_nombre,
+        cl.telefono as cliente_telefono,
+        cl.email as cliente_email,
+        s.nombre as servicio_nombre,
+        s.precio as precio_servicio
+       FROM citas c
+       JOIN clientes cl ON c.cliente_id = cl.cliente_id
+       JOIN servicios s ON c.servicio_id = s.servicio_id
+       WHERE c.tenant_id = ?
+       AND cl.telefono = ?
+       AND c.fecha = ?
+       AND c.estado NOT IN ('cancelada', 'completada')
+    `;
+
+    const params = [tenantId, telefono, fecha];
+
+    // Si se proporciona hora, buscar cita específica
+    if (hora) {
+      query += ' AND c.hora_inicio = ?';
+      params.push(hora);
+    }
+
+    query += ' LIMIT 1';
+
+    const cita = getOne(query, params);
+
+    if (!cita) {
+      return res.status(404).json({
+        error: 'No se encontró ninguna cita para ese teléfono y fecha'
+      });
+    }
+
+    // Cancelar la cita
+    run(
+      'UPDATE citas SET estado = ?, notas = ?, updated_at = CURRENT_TIMESTAMP WHERE cita_id = ?',
+      ['cancelada', motivo ? `CANCELADA: ${motivo}` : 'CANCELADA por teléfono', cita.cita_id]
+    );
+
+    // Enviar webhook de cita cancelada
+    webhookCitaCancelada(tenantId, cita, motivo).catch(err =>
+      console.error('Error en webhook cita cancelada:', err)
+    );
+
+    res.json({
+      success: true,
+      message: 'Cita cancelada exitosamente',
+      cita_cancelada: {
+        cliente: cita.cliente_nombre,
+        servicio: cita.servicio_nombre,
+        fecha: cita.fecha,
+        hora: cita.hora_inicio
+      }
+    });
+  } catch (error) {
+    console.error('Error al cancelar cita por teléfono:', error);
+    res.status(500).json({ error: 'Error al cancelar la cita' });
+  }
+};
+
 // Consultar disponibilidad
 export const consultarDisponibilidad = (req, res) => {
   try {
