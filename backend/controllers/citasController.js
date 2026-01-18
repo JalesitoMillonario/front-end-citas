@@ -362,70 +362,73 @@ export const cancelarCita = (req, res) => {
 export const consultarDisponibilidad = (req, res) => {
   try {
     const tenantId = req.tenantId;
-    const { fecha, servicio_id } = req.query;
+    const { fecha } = req.query;
 
-    if (!fecha || !servicio_id) {
-      return res.status(400).json({ error: 'Fecha y servicio_id son obligatorios' });
+    if (!fecha) {
+      return res.status(400).json({ error: 'Fecha es obligatoria' });
     }
 
-    // Obtener servicio
-    const servicio = getOne(
-      'SELECT duracion FROM servicios WHERE servicio_id = ? AND tenant_id = ?',
-      [servicio_id, tenantId]
-    );
-
-    if (!servicio) {
-      return res.status(404).json({ error: 'Servicio no encontrado' });
-    }
-
-    // Obtener citas del día
+    // Obtener citas del día con información completa
     const citasDelDia = getAll(
-      `SELECT hora_inicio, hora_fin FROM citas
-       WHERE tenant_id = ? AND fecha = ? AND estado NOT IN ('cancelada')
-       ORDER BY hora_inicio`,
+      `SELECT c.hora_inicio, c.hora_fin, c.estado, s.nombre as servicio_nombre, cl.nombre as cliente_nombre
+       FROM citas c
+       JOIN servicios s ON c.servicio_id = s.servicio_id
+       JOIN clientes cl ON c.cliente_id = cl.cliente_id
+       WHERE c.tenant_id = ? AND c.fecha = ? AND c.estado NOT IN ('cancelada')
+       ORDER BY c.hora_inicio`,
       [tenantId, fecha]
     );
 
-    // Obtener horario del negocio para ese día
-    // Por ahora devolver horario por defecto, luego se puede mejorar
-    const horariosDisponibles = [];
+    // Generar todos los slots del día (9:00 - 20:00 cada 30 min)
     const horaInicio = 9; // 9:00
     const horaFin = 20; // 20:00
     const intervalo = 30; // minutos
+    const slots = [];
 
     for (let hora = horaInicio * 60; hora < horaFin * 60; hora += intervalo) {
       const horas = Math.floor(hora / 60);
       const minutos = hora % 60;
       const horaStr = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
 
-      // Calcular hora de fin del slot
-      const horaFinSlot = hora + servicio.duracion;
-      const horasFinSlot = Math.floor(horaFinSlot / 60);
-      const minutosFinSlot = horaFinSlot % 60;
-      const horaFinStr = `${String(horasFinSlot).padStart(2, '0')}:${String(minutosFinSlot).padStart(2, '0')}`;
-
-      // Verificar si hay conflicto
-      const hayConflicto = citasDelDia.some((cita) => {
-        return (
-          (horaStr >= cita.hora_inicio && horaStr < cita.hora_fin) ||
-          (horaFinStr > cita.hora_inicio && horaFinStr <= cita.hora_fin) ||
-          (horaStr <= cita.hora_inicio && horaFinStr >= cita.hora_fin)
-        );
+      // Verificar si este slot está ocupado por alguna cita
+      const citaEnSlot = citasDelDia.find((cita) => {
+        return horaStr >= cita.hora_inicio && horaStr < cita.hora_fin;
       });
 
-      if (!hayConflicto) {
-        horariosDisponibles.push({
+      if (citaEnSlot) {
+        slots.push({
           hora: horaStr,
-          disponible: true,
+          disponible: false,
+          ocupado_por: citaEnSlot.servicio_nombre,
+          cliente: citaEnSlot.cliente_nombre,
+          estado: citaEnSlot.estado
+        });
+      } else {
+        slots.push({
+          hora: horaStr,
+          disponible: true
         });
       }
     }
 
+    // Contar slots libres y ocupados
+    const libres = slots.filter(s => s.disponible).length;
+    const ocupados = slots.filter(s => !s.disponible).length;
+
     res.json({
       fecha,
-      servicio_id,
-      duracion: servicio.duracion,
-      slots_disponibles: horariosDisponibles,
+      horario_negocio: {
+        apertura: '09:00',
+        cierre: '20:00',
+        intervalo_minutos: intervalo
+      },
+      resumen: {
+        total_slots: slots.length,
+        libres,
+        ocupados
+      },
+      slots,
+      citas_del_dia: citasDelDia
     });
   } catch (error) {
     console.error('Error al consultar disponibilidad:', error);
