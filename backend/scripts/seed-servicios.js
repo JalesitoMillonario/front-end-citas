@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { randomUUID } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -80,8 +81,8 @@ const servicios = [
 ];
 
 const stmt = db.prepare(`
-  INSERT INTO servicios (tenant_id, nombre, descripcion, precio, duracion, activo, categoria)
-  VALUES (?, ?, ?, ?, ?, 1, ?)
+  INSERT INTO servicios (servicio_id, tenant_id, nombre, descripcion, precio, duracion, activo, categoria)
+  VALUES (?, ?, ?, ?, ?, ?, 1, ?)
 `);
 
 let insertados = 0;
@@ -96,6 +97,7 @@ servicios.forEach(servicio => {
       console.log(`⏭️  ${servicio.nombre} - Ya existe`);
     } else {
       stmt.run(
+        randomUUID(),
         tenantId,
         servicio.nombre,
         servicio.descripcion,
