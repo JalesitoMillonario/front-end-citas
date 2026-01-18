@@ -1,0 +1,435 @@
+{
+  "name": "Sistema Citas Completo - PRODUCCION",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-manual",
+      "name": "Inicio Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "accion",
+              "value": "crear",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "cliente_nombre",
+              "value": "María García",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "cliente_telefono",
+              "value": "+34612345678",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "cliente_email",
+              "value": "maria@email.com",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "servicio_id",
+              "value": "563e5cc9-ff3c-4e7e-ba35-4d797017e32a",
+              "type": "string"
+            },
+            {
+              "id": "6",
+              "name": "fecha",
+              "value": "={{ $now.plus(1, 'days').toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "7",
+              "name": "hora",
+              "value": "10:00",
+              "type": "string"
+            },
+            {
+              "id": "8",
+              "name": "cita_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "9",
+              "name": "motivo_cancelacion",
+              "value": "Cliente canceló",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config-datos",
+      "name": "⚙️ Configurar Datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "1",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "disponibilidad",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "disponibilidad"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "1",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "crear",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "crear"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "1",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "listar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "listar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "1",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "cancelar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancelar"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-accion",
+      "name": "🔀 Elegir Acción",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://34.57.154.181:5000/api/n8n/citas/disponibilidad?fecha={{ $json.fecha }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-disponibilidad",
+      "name": "📅 Consultar Disponibilidad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://34.57.154.181:5000/api/n8n/citas/crear",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"cliente_nombre\": \"{{ $json.cliente_nombre }}\",\n  \"cliente_telefono\": \"{{ $json.cliente_telefono }}\",\n  \"cliente_email\": \"{{ $json.cliente_email }}\",\n  \"servicio_id\": \"{{ $json.servicio_id }}\",\n  \"fecha\": \"{{ $json.fecha }}\",\n  \"hora\": \"{{ $json.hora }}\",\n  \"notas\": \"Cita creada desde n8n\",\n  \"created_by\": \"n8n\"\n}",
+        "options": {}
+      },
+      "id": "http-crear",
+      "name": "➕ Crear Cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 350]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://34.57.154.181:5000/api/n8n/citas/listar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-listar",
+      "name": "📋 Listar Citas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=http://34.57.154.181:5000/api/n8n/citas/cancelar/{{ $json.cita_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"motivo\": \"{{ $json.motivo_cancelacion }}\"\n}",
+        "options": {}
+      },
+      "id": "http-cancelar",
+      "name": "❌ Cancelar Cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 650]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear resultado de disponibilidad\nconst data = $input.first().json;\n\nconst libres = data.slots.filter(s => s.disponible);\nconst ocupados = data.slots.filter(s => !s.disponible);\n\nconst resultado = {\n  accion: 'disponibilidad',\n  fecha: data.fecha,\n  resumen: {\n    total_slots: data.resumen.total_slots,\n    libres: data.resumen.libres,\n    ocupados: data.resumen.ocupados\n  },\n  horarios_libres: libres.map(s => s.hora),\n  horarios_ocupados: ocupados.map(s => ({\n    hora: s.hora,\n    cliente: s.cliente,\n    servicio: s.ocupado_por\n  })),\n  mensaje: `📅 Disponibilidad para ${data.fecha}:\\n✅ ${data.resumen.libres} slots libres\\n❌ ${data.resumen.ocupados} slots ocupados`\n};\n\nreturn { json: resultado };"
+      },
+      "id": "format-disponibilidad",
+      "name": "✨ Formatear Disponibilidad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear resultado de cita creada\nconst cita = $input.first().json;\n\nconst resultado = {\n  accion: 'crear',\n  success: true,\n  cita_id: cita.cita_id,\n  detalles: {\n    cliente: cita.cliente_nombre,\n    telefono: cita.cliente_telefono,\n    servicio: cita.servicio_nombre,\n    fecha: cita.fecha,\n    hora: `${cita.hora_inicio} - ${cita.hora_fin}`,\n    precio: `${cita.precio_servicio}€`,\n    duracion: `${cita.servicio_duracion} min`,\n    estado: cita.estado\n  },\n  mensaje: `✅ CITA CREADA\\n👤 ${cita.cliente_nombre}\\n💆‍♀️ ${cita.servicio_nombre}\\n📅 ${cita.fecha} a las ${cita.hora_inicio}\\n💰 ${cita.precio_servicio}€`\n};\n\nreturn { json: resultado };"
+      },
+      "id": "format-crear",
+      "name": "✨ Formatear Crear",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 350]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear lista de citas\nconst citas = $input.all().map(item => item.json);\n\nconst porEstado = {\n  pendiente: citas.filter(c => c.estado === 'pendiente').length,\n  confirmada: citas.filter(c => c.estado === 'confirmada').length,\n  completada: citas.filter(c => c.estado === 'completada').length,\n  cancelada: citas.filter(c => c.estado === 'cancelada').length\n};\n\nconst resultado = {\n  accion: 'listar',\n  total: citas.length,\n  por_estado: porEstado,\n  citas: citas.map(c => ({\n    id: c.cita_id,\n    cliente: c.cliente_nombre,\n    telefono: c.cliente_telefono,\n    servicio: c.servicio_nombre,\n    fecha: c.fecha,\n    hora: `${c.hora_inicio} - ${c.hora_fin}`,\n    estado: c.estado,\n    precio: `${c.precio_servicio}€`\n  })),\n  mensaje: `📋 LISTADO DE CITAS\\nTotal: ${citas.length}\\n⏳ Pendientes: ${porEstado.pendiente}\\n✅ Confirmadas: ${porEstado.confirmada}\\n✔️ Completadas: ${porEstado.completada}\\n❌ Canceladas: ${porEstado.cancelada}`\n};\n\nreturn { json: resultado };"
+      },
+      "id": "format-listar",
+      "name": "✨ Formatear Listar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear resultado de cancelación\nconst data = $input.first().json;\n\nconst resultado = {\n  accion: 'cancelar',\n  success: data.success,\n  mensaje: `❌ CITA CANCELADA\\n${data.message}`\n};\n\nreturn { json: resultado };"
+      },
+      "id": "format-cancelar",
+      "name": "✨ Formatear Cancelar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 650]
+    }
+  ],
+  "connections": {
+    "Inicio Manual": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Configurar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Configurar Datos": {
+      "main": [
+        [
+          {
+            "node": "🔀 Elegir Acción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Elegir Acción": {
+      "main": [
+        [
+          {
+            "node": "📅 Consultar Disponibilidad",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "➕ Crear Cita",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📋 Listar Citas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "❌ Cancelar Cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📅 Consultar Disponibilidad": {
+      "main": [
+        [
+          {
+            "node": "✨ Formatear Disponibilidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "➕ Crear Cita": {
+      "main": [
+        [
+          {
+            "node": "✨ Formatear Crear",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Listar Citas": {
+      "main": [
+        [
+          {
+            "node": "✨ Formatear Listar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "❌ Cancelar Cita": {
+      "main": [
+        [
+          {
+            "node": "✨ Formatear Cancelar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "00000000-0000-0000-0000-000000000003",
+  "meta": {
+    "instanceId": "your-instance-id"
+  },
+  "id": "3",
+  "tags": []
+}
