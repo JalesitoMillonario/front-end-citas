@@ -20,6 +20,13 @@ export const formatDate = (date, formatStr = 'dd/MM/yyyy') => {
  */
 export const formatTime = (time) => {
   if (!time) return '';
+
+  // Si ya es string en formato HH:mm, devolverlo directamente
+  if (typeof time === 'string' && /^\d{2}:\d{2}$/.test(time)) {
+    return time;
+  }
+
+  // Si es Date object, formatearlo
   const timeObj = typeof time === 'string' ? parseISO(time) : time;
   return format(timeObj, 'HH:mm');
 };
