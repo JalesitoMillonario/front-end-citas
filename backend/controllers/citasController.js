@@ -9,6 +9,7 @@ export const crearCita = (req, res) => {
       cliente_id,
       cliente_nombre,
       cliente_telefono,
+      cliente_email,
       servicio_id,
       fecha,
       hora,
@@ -20,22 +21,40 @@ export const crearCita = (req, res) => {
 
     // Validaciones
     if (!servicio_id || !fecha || !hora) {
-      return res.status(400).json({ error: 'Faltan datos obligatorios' });
+      return res.status(400).json({ error: 'Faltan datos obligatorios: servicio_id, fecha, hora' });
     }
 
-    // Si no hay cliente_id, crear cliente nuevo
+    // UPSERT de cliente: buscar por teléfono o crear nuevo
     let finalClienteId = cliente_id;
 
-    if (!cliente_id && cliente_nombre && cliente_telefono) {
-      finalClienteId = uuidv4();
-      run(
-        `INSERT INTO clientes (cliente_id, tenant_id, nombre, telefono) VALUES (?, ?, ?, ?)`,
-        [finalClienteId, tenantId, cliente_nombre, cliente_telefono]
-      );
-    }
+    if (!cliente_id) {
+      // Si no hay cliente_id, necesitamos al menos nombre y teléfono
+      if (!cliente_nombre || !cliente_telefono) {
+        return res.status(400).json({
+          error: 'Debe proporcionar cliente_id O (cliente_nombre + cliente_telefono)'
+        });
+      }
 
-    if (!finalClienteId) {
-      return res.status(400).json({ error: 'Debe proporcionar cliente_id o cliente_nombre/telefono' });
+      // Buscar cliente existente por teléfono
+      const clienteExistente = getOne(
+        `SELECT cliente_id FROM clientes WHERE tenant_id = ? AND telefono = ?`,
+        [tenantId, cliente_telefono]
+      );
+
+      if (clienteExistente) {
+        // Cliente ya existe, usar su ID
+        finalClienteId = clienteExistente.cliente_id;
+        console.log(`✅ Cliente encontrado por teléfono: ${finalClienteId}`);
+      } else {
+        // Crear cliente nuevo
+        finalClienteId = uuidv4();
+        run(
+          `INSERT INTO clientes (cliente_id, tenant_id, nombre, telefono, email)
+           VALUES (?, ?, ?, ?, ?)`,
+          [finalClienteId, tenantId, cliente_nombre, cliente_telefono, cliente_email || null]
+        );
+        console.log(`✅ Cliente nuevo creado: ${finalClienteId}`);
+      }
     }
 
     // Obtener duración del servicio
