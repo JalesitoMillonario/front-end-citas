@@ -1,0 +1,306 @@
+### ===============================================
+### API DE CITAS - PRUEBAS
+### ===============================================
+###
+### Configuración:
+### - API Key: f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788
+### - Tenant ID: f0db1afa-6f46-461d-95a9-65aed91f66ca
+### - Base URL: http://34.57.154.181:5000
+###
+### ===============================================
+
+@baseUrl = http://34.57.154.181:5000
+@apiKey = f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788
+@tenantId = f0db1afa-6f46-461d-95a9-65aed91f66ca
+
+### ===============================================
+### SERVICIOS
+### ===============================================
+
+### 1. Listar Servicios
+GET {{baseUrl}}/api/n8n/servicios/listar
+X-API-Key: {{apiKey}}
+
+### ===============================================
+### DISPONIBILIDAD
+### ===============================================
+
+### 2. Consultar Disponibilidad (Solo Fecha)
+GET {{baseUrl}}/api/n8n/citas/disponibilidad?fecha=2026-01-25
+X-API-Key: {{apiKey}}
+
+### ===============================================
+### CITAS - CREAR
+### ===============================================
+
+### 3. Crear Cita (Auto-crea cliente si no existe)
+POST {{baseUrl}}/api/n8n/citas/crear
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "cliente_nombre": "María García",
+  "cliente_telefono": "+34612345678",
+  "cliente_email": "maria@email.com",
+  "servicio_id": "563e5cc9-ff3c-4e7e-ba35-4d797017e32a",
+  "fecha": "2026-01-25",
+  "hora": "10:00"
+}
+
+### 4. Crear Cita (Cliente existente, sin email)
+POST {{baseUrl}}/api/n8n/citas/crear
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "cliente_nombre": "Juan Pérez",
+  "cliente_telefono": "+34698765432",
+  "servicio_id": "c4b5be70-2357-402f-8a4b-ad922a52e2b3",
+  "fecha": "2026-01-26",
+  "hora": "14:00"
+}
+
+### ===============================================
+### CITAS - LISTAR
+### ===============================================
+
+### 5. Listar Todas las Citas
+GET {{baseUrl}}/api/n8n/citas/listar
+X-API-Key: {{apiKey}}
+
+### 6. Listar Citas por Fecha
+GET {{baseUrl}}/api/n8n/citas/listar?fecha=2026-01-25
+X-API-Key: {{apiKey}}
+
+### 7. Listar Citas por Estado
+GET {{baseUrl}}/api/n8n/citas/listar?estado=confirmada
+X-API-Key: {{apiKey}}
+
+### 8. Listar Citas por Rango de Fechas
+GET {{baseUrl}}/api/n8n/citas/listar?fecha_inicio=2026-01-20&fecha_fin=2026-01-31
+X-API-Key: {{apiKey}}
+
+### ===============================================
+### CITAS - MODIFICAR
+### ===============================================
+
+### 9. Modificar Cita (Cambiar fecha y hora)
+PUT {{baseUrl}}/api/n8n/citas/modificar-por-telefono
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "telefono": "+34612345678",
+  "fecha_actual": "2026-01-25",
+  "hora_actual": "10:00",
+  "nueva_fecha": "2026-01-27",
+  "nueva_hora": "14:00"
+}
+
+### 10. Modificar Cita (Solo cambiar hora, mismo día)
+PUT {{baseUrl}}/api/n8n/citas/modificar-por-telefono
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "telefono": "+34612345678",
+  "fecha_actual": "2026-01-25",
+  "hora_actual": "10:00",
+  "nueva_fecha": "2026-01-25",
+  "nueva_hora": "16:00"
+}
+
+### 11. Modificar Cita (Cambiar servicio también)
+PUT {{baseUrl}}/api/n8n/citas/modificar-por-telefono
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "telefono": "+34612345678",
+  "fecha_actual": "2026-01-25",
+  "hora_actual": "10:00",
+  "nueva_fecha": "2026-01-27",
+  "nueva_hora": "11:00",
+  "nuevo_servicio_id": "bfcaa47b-6efe-48c2-939c-536d9ed6494f"
+}
+
+### 12. Modificar Cita (Sin especificar hora_actual - busca única cita del día)
+PUT {{baseUrl}}/api/n8n/citas/modificar-por-telefono
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "telefono": "+34612345678",
+  "fecha_actual": "2026-01-25",
+  "nueva_fecha": "2026-01-28",
+  "nueva_hora": "09:30"
+}
+
+### ===============================================
+### CITAS - CANCELAR
+### ===============================================
+
+### 13. Cancelar Cita (Con hora específica)
+POST {{baseUrl}}/api/n8n/citas/cancelar-por-telefono
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "telefono": "+34612345678",
+  "fecha": "2026-01-25",
+  "hora": "10:00",
+  "motivo": "Cliente canceló por cambio de planes"
+}
+
+### 14. Cancelar Cita (Sin hora - busca única cita del día)
+POST {{baseUrl}}/api/n8n/citas/cancelar-por-telefono
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "telefono": "+34698765432",
+  "fecha": "2026-01-26",
+  "motivo": "Cancelación vía WhatsApp"
+}
+
+### ===============================================
+### CLIENTES
+### ===============================================
+
+### 15. Buscar Cliente por Teléfono
+GET {{baseUrl}}/api/n8n/clientes/buscar?telefono=+34612345678
+X-API-Key: {{apiKey}}
+
+### 16. Crear Cliente
+POST {{baseUrl}}/api/n8n/clientes/crear
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "nombre": "Ana López",
+  "telefono": "+34611222333",
+  "email": "ana@email.com"
+}
+
+### ===============================================
+### FLUJO COMPLETO: AGENDAR CITA
+### ===============================================
+
+### PASO 1: Consultar servicios disponibles
+GET {{baseUrl}}/api/n8n/servicios/listar
+X-API-Key: {{apiKey}}
+
+### PASO 2: Consultar disponibilidad para una fecha
+GET {{baseUrl}}/api/n8n/citas/disponibilidad?fecha=2026-01-30
+X-API-Key: {{apiKey}}
+
+### PASO 3: Crear la cita (auto-crea cliente si no existe)
+POST {{baseUrl}}/api/n8n/citas/crear
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "cliente_nombre": "Laura Martínez",
+  "cliente_telefono": "+34644555666",
+  "cliente_email": "laura@email.com",
+  "servicio_id": "563e5cc9-ff3c-4e7e-ba35-4d797017e32a",
+  "fecha": "2026-01-30",
+  "hora": "11:00"
+}
+
+### ===============================================
+### FLUJO COMPLETO: MODIFICAR CITA
+### ===============================================
+
+### PASO 1: Consultar disponibilidad para nueva fecha
+GET {{baseUrl}}/api/n8n/citas/disponibilidad?fecha=2026-02-03
+X-API-Key: {{apiKey}}
+
+### PASO 2: Modificar la cita
+PUT {{baseUrl}}/api/n8n/citas/modificar-por-telefono
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "telefono": "+34644555666",
+  "fecha_actual": "2026-01-30",
+  "hora_actual": "11:00",
+  "nueva_fecha": "2026-02-03",
+  "nueva_hora": "15:00"
+}
+
+### ===============================================
+### CASOS DE ERROR (TESTING)
+### ===============================================
+
+### ERROR: Crear cita sin datos obligatorios
+POST {{baseUrl}}/api/n8n/citas/crear
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "cliente_nombre": "Test Error"
+}
+
+### ERROR: Modificar cita que no existe
+PUT {{baseUrl}}/api/n8n/citas/modificar-por-telefono
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "telefono": "+34999999999",
+  "fecha_actual": "2026-01-25",
+  "nueva_fecha": "2026-01-27",
+  "nueva_hora": "14:00"
+}
+
+### ERROR: Cancelar cita que no existe
+POST {{baseUrl}}/api/n8n/citas/cancelar-por-telefono
+Content-Type: application/json
+X-API-Key: {{apiKey}}
+
+{
+  "telefono": "+34999999999",
+  "fecha": "2026-01-25"
+}
+
+### ERROR: Disponibilidad sin fecha
+GET {{baseUrl}}/api/n8n/citas/disponibilidad
+X-API-Key: {{apiKey}}
+
+### ERROR: Sin API Key
+GET {{baseUrl}}/api/n8n/servicios/listar
+
+### ===============================================
+### NOTAS:
+### ===============================================
+###
+### 1. SERVICIOS DISPONIBLES (IDs reales):
+###    - Manicura: 563e5cc9-ff3c-4e7e-ba35-4d797017e32a
+###    - Pedicura: c4b5be70-2357-402f-8a4b-ad922a52e2b3
+###    - Depilación Cejas: 5abb7e4e-61d3-4581-b297-0700d371bb26
+###    - Masaje Facial: bfcaa47b-6efe-48c2-939c-536d9ed6494f
+###    - Limpieza Facial: 524f8e5c-eb10-4d1d-8dff-9f4c8b0fdeb3
+###    - Depilación Piernas: 431a0e20-551e-4916-9991-da86ba5dfc6a
+###    - Uñas de Gel: d044cbcb-cc62-4729-addb-8e62e51e45b6
+###    - Masaje Relajante: 7d0313e9-66e0-40a9-a3aa-ffe0d1216c12
+###
+### 2. FLUJO RECOMENDADO:
+###    Crear cita → Siempre consultar disponibilidad primero
+###    Modificar cita → Siempre consultar disponibilidad para nueva fecha primero
+###
+### 3. AUTO-CREACIÓN DE CLIENTES:
+###    El endpoint /crear hace auto-upsert:
+###    - Si el teléfono existe → usa ese cliente
+###    - Si no existe → crea uno nuevo automáticamente
+###
+### 4. MODIFICAR VS CANCELAR:
+###    - Modificar: Mantiene la cita, solo cambia fecha/hora/servicio
+###    - Cancelar: Marca la cita como 'cancelada', se auto-borra después de 1 hora
+###
+### 5. VALIDACIONES AUTOMÁTICAS:
+###    - Modificar: Verifica que nuevo horario esté disponible
+###    - Crear: Auto-calcula hora_fin según duración del servicio
+###    - Disponibilidad: Genera slots cada 30 min de 9:00 a 20:00
+###
+### ===============================================
