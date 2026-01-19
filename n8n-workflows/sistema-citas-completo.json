@@ -7,7 +7,10 @@
       "name": "Inicio Manual",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 400]
+      "position": [
+        240,
+        400
+      ]
     },
     {
       "parameters": {
@@ -60,6 +63,30 @@
               "name": "motivo_cancelacion",
               "value": "Cliente canceló",
               "type": "string"
+            },
+            {
+              "id": "9",
+              "name": "fecha_actual",
+              "value": "={{ $now.plus(1, 'days').toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "10",
+              "name": "hora_actual",
+              "value": "10:00",
+              "type": "string"
+            },
+            {
+              "id": "11",
+              "name": "nueva_fecha",
+              "value": "={{ $now.plus(3, 'days').toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "12",
+              "name": "nueva_hora",
+              "value": "14:00",
+              "type": "string"
             }
           ]
         },
@@ -69,7 +96,10 @@
       "name": "⚙️ Configurar Datos",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [460, 400]
+      "position": [
+        460,
+        400
+      ]
     },
     {
       "parameters": {
@@ -166,6 +196,52 @@
               },
               "renameOutput": true,
               "outputKey": "cancelar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "1",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "modificar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "modificar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "1",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "servicios",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "servicios"
             }
           ]
         },
@@ -175,7 +251,10 @@
       "name": "🔀 Elegir Acción",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [680, 400]
+      "position": [
+        680,
+        400
+      ]
     },
     {
       "parameters": {
@@ -196,7 +275,10 @@
       "name": "📅 Consultar Disponibilidad",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 200]
+      "position": [
+        900,
+        200
+      ]
     },
     {
       "parameters": {
@@ -224,7 +306,10 @@
       "name": "➕ Crear Cita",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 350]
+      "position": [
+        900,
+        350
+      ]
     },
     {
       "parameters": {
@@ -245,7 +330,10 @@
       "name": "📋 Listar Citas",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 500]
+      "position": [
+        900,
+        500
+      ]
     },
     {
       "parameters": {
@@ -273,7 +361,10 @@
       "name": "❌ Cancelar Cita",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 650]
+      "position": [
+        900,
+        650
+      ]
     },
     {
       "parameters": {
@@ -283,7 +374,10 @@
       "name": "✨ Formatear Disponibilidad",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 200]
+      "position": [
+        1120,
+        200
+      ]
     },
     {
       "parameters": {
@@ -293,7 +387,10 @@
       "name": "✨ Formatear Crear",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 350]
+      "position": [
+        1120,
+        350
+      ]
     },
     {
       "parameters": {
@@ -303,7 +400,10 @@
       "name": "✨ Formatear Listar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 500]
+      "position": [
+        1120,
+        500
+      ]
     },
     {
       "parameters": {
@@ -313,7 +413,91 @@
       "name": "✨ Formatear Cancelar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 650]
+      "position": [
+        1120,
+        650
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://34.57.154.181:5000/api/n8n/citas/modificar-por-telefono",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"telefono\": \"{{ $json.cliente_telefono }}\",\n  \"fecha_actual\": \"{{ $json.fecha_actual }}\",\n  \"hora_actual\": \"{{ $json.hora_actual }}\",\n  \"nueva_fecha\": \"{{ $json.nueva_fecha }}\",\n  \"nueva_hora\": \"{{ $json.nueva_hora }}\",\n  \"nuevo_servicio_id\": \"{{ $json.servicio_id }}\"\n}",
+        "options": {}
+      },
+      "id": "http-modificar",
+      "name": "🔄 Modificar Cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear resultado de modificación\nconst data = $input.first().json;\n\nconst resultado = {\n  accion: 'modificar',\n  success: data.success,\n  cita_anterior: data.cita_anterior,\n  cita_nueva: data.cita_nueva,\n  mensaje: `🔄 CITA MODIFICADA\\n${data.message}\\n\\n📅 ANTES:\\nFecha: ${data.cita_anterior.fecha}\\nHora: ${data.cita_anterior.hora}\\nServicio: ${data.cita_anterior.servicio}\\n\\n📅 DESPUÉS:\\n👤 ${data.cita_nueva.cliente}\\n💆‍♀️ ${data.cita_nueva.servicio}\\n📅 ${data.cita_nueva.fecha} a las ${data.cita_nueva.hora}\\n💰 ${data.cita_nueva.precio}€`\n};\n\nreturn { json: resultado };"
+      },
+      "id": "format-modificar",
+      "name": "✨ Formatear Modificar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://34.57.154.181:5000/api/n8n/servicios/listar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "f18724d47bc46ec7cac67f50633fd5508ade65b113215007e09d9c345b571788"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-servicios",
+      "name": "🛠️ Listar Servicios",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        950
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear lista de servicios\nconst servicios = $input.all().map(item => item.json);\n\nconst porCategoria = {};\nservicios.forEach(s => {\n  const cat = s.categoria || 'Sin categoría';\n  if (!porCategoria[cat]) porCategoria[cat] = [];\n  porCategoria[cat].push(s);\n});\n\nconst activos = servicios.filter(s => s.activo === 1).length;\nconst inactivos = servicios.filter(s => s.activo === 0).length;\n\nconst resultado = {\n  accion: 'servicios',\n  total: servicios.length,\n  activos: activos,\n  inactivos: inactivos,\n  por_categoria: Object.keys(porCategoria).map(cat => ({\n    categoria: cat,\n    cantidad: porCategoria[cat].length\n  })),\n  servicios: servicios.map(s => ({\n    id: s.servicio_id,\n    nombre: s.nombre,\n    descripcion: s.descripcion,\n    duracion: `${s.duracion_minutos} min`,\n    precio: `${s.precio}€`,\n    categoria: s.categoria,\n    activo: s.activo === 1\n  })),\n  mensaje: `🛠️ SERVICIOS DISPONIBLES\\nTotal: ${servicios.length}\\n✅ Activos: ${activos}\\n❌ Inactivos: ${inactivos}\\n\\nCategorías:\\n${Object.keys(porCategoria).map(cat => `  • ${cat}: ${porCategoria[cat].length}`).join('\\n')}`\n};\n\nreturn { json: resultado };"
+      },
+      "id": "format-servicios",
+      "name": "✨ Formatear Servicios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        950
+      ]
     }
   ],
   "connections": {
@@ -368,6 +552,20 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "🔄 Modificar Cita",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🛠️ Listar Servicios",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -409,6 +607,28 @@
         [
           {
             "node": "✨ Formatear Cancelar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔄 Modificar Cita": {
+      "main": [
+        [
+          {
+            "node": "✨ Formatear Modificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🛠️ Listar Servicios": {
+      "main": [
+        [
+          {
+            "node": "✨ Formatear Servicios",
             "type": "main",
             "index": 0
           }
