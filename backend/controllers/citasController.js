@@ -707,8 +707,13 @@ export const modificarCitaPorTelefono = (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error al modificar cita por teléfono:', error);
-    res.status(500).json({ error: 'Error al modificar la cita' });
+    console.error('❌ Error al modificar cita por teléfono:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({
+      error: 'Error al modificar la cita',
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
