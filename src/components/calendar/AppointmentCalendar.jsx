@@ -8,7 +8,7 @@ import { getStatusColor } from '../../utils/formatters';
 moment.locale('es');
 const localizer = momentLocalizer(moment);
 
-const AppointmentCalendar = ({ appointments = [], onSelectEvent, onSelectSlot, onEventDrop }) => {
+const AppointmentCalendar = ({ appointments = [], onSelectEvent, onSelectSlot, onEventDrop, schedule = null }) => {
   const [view, setView] = useState('week');
   const [date, setDate] = useState(new Date());
 
@@ -27,6 +27,104 @@ const AppointmentCalendar = ({ appointments = [], onSelectEvent, onSelectSlot, o
       };
     });
   }, [appointments]);
+
+  // Función para verificar si un día está abierto
+  const isDayOpen = useCallback((date) => {
+    if (!schedule) return true; // Si no hay horario configurado, mostrar todo
+
+    const dayNames = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const dayName = dayNames[date.getDay()];
+    const daySchedule = schedule[dayName];
+
+    return daySchedule && daySchedule.abierto;
+  }, [schedule]);
+
+  // Función para verificar si un slot está en horario de apertura
+  const isSlotAvailable = useCallback((date) => {
+    if (!schedule) return true;
+
+    const dayNames = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const dayName = dayNames[date.getDay()];
+    const daySchedule = schedule[dayName];
+
+    if (!daySchedule || !daySchedule.abierto) return false;
+
+    const slotTime = moment(date).format('HH:mm');
+    const isInOpenHours = slotTime >= daySchedule.inicio && slotTime < daySchedule.cierre;
+
+    if (!isInOpenHours) return false;
+
+    // Verificar si está en pausa
+    if (daySchedule.pausas && daySchedule.pausas.length > 0) {
+      const isInPause = daySchedule.pausas.some(pausa => {
+        return slotTime >= pausa.inicio && slotTime < pausa.fin;
+      });
+      if (isInPause) return false;
+    }
+
+    return true;
+  }, [schedule]);
+
+  // Estilizar días cerrados
+  const dayPropGetter = useCallback((date) => {
+    if (!isDayOpen(date)) {
+      return {
+        className: 'rbc-off-range-bg',
+        style: {
+          backgroundColor: '#f3f4f6',
+          cursor: 'not-allowed',
+        }
+      };
+    }
+    return {};
+  }, [isDayOpen]);
+
+  // Estilizar slots fuera del horario
+  const slotPropGetter = useCallback((date) => {
+    if (!isSlotAvailable(date)) {
+      return {
+        style: {
+          backgroundColor: '#f9fafb',
+          cursor: 'not-allowed',
+          opacity: 0.5,
+        }
+      };
+    }
+    return {};
+  }, [isSlotAvailable]);
+
+  // Calcular horarios mínimos y máximos basados en el horario del negocio
+  const { minTime, maxTime } = useMemo(() => {
+    if (!schedule) {
+      return {
+        minTime: new Date(2024, 1, 1, 8, 0, 0),
+        maxTime: new Date(2024, 1, 1, 21, 0, 0),
+      };
+    }
+
+    // Encontrar el horario más temprano y más tardío de todos los días
+    let earliestHour = 24;
+    let latestHour = 0;
+
+    Object.values(schedule).forEach(daySchedule => {
+      if (daySchedule.abierto) {
+        const [startHour] = daySchedule.inicio.split(':').map(Number);
+        const [endHour] = daySchedule.cierre.split(':').map(Number);
+
+        if (startHour < earliestHour) earliestHour = startHour;
+        if (endHour > latestHour) latestHour = endHour;
+      }
+    });
+
+    // Si no hay días abiertos, usar valores por defecto
+    if (earliestHour === 24) earliestHour = 8;
+    if (latestHour === 0) latestHour = 21;
+
+    return {
+      minTime: new Date(2024, 1, 1, Math.max(0, earliestHour - 1), 0, 0),
+      maxTime: new Date(2024, 1, 1, Math.min(23, latestHour + 1), 0, 0),
+    };
+  }, [schedule]);
 
   // Personalizar estilos de eventos según el estado
   const eventStyleGetter = useCallback((event) => {
@@ -116,6 +214,8 @@ const AppointmentCalendar = ({ appointments = [], onSelectEvent, onSelectSlot, o
         onSelectSlot={onSelectSlot}
         onEventDrop={onEventDrop}
         eventPropGetter={eventStyleGetter}
+        dayPropGetter={dayPropGetter}
+        slotPropGetter={slotPropGetter}
         messages={messages}
         formats={formats}
         selectable
@@ -124,8 +224,8 @@ const AppointmentCalendar = ({ appointments = [], onSelectEvent, onSelectSlot, o
         style={{ height: '100%' }}
         step={15}
         timeslots={4}
-        min={new Date(2024, 1, 1, 8, 0, 0)} // 8:00 AM
-        max={new Date(2024, 1, 1, 21, 0, 0)} // 9:00 PM
+        min={minTime}
+        max={maxTime}
         culture="es"
       />
     </div>

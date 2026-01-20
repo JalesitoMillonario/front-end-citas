@@ -3,11 +3,13 @@ import { Plus } from 'lucide-react';
 import AppointmentCalendar from '../components/calendar/AppointmentCalendar';
 import AppointmentForm from '../components/appointments/AppointmentForm';
 import useAppointments from '../hooks/useAppointments';
+import { useTenant } from '../context/TenantContext';
 import { format } from 'date-fns';
 
 const Calendar = () => {
   const { appointments, fetchAppointments, createAppointment, updateAppointment, loading } =
     useAppointments();
+  const { tenantConfig } = useTenant();
 
   const [showForm, setShowForm] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -160,6 +162,7 @@ const Calendar = () => {
         onSelectEvent={handleSelectEvent}
         onSelectSlot={handleSelectSlot}
         onEventDrop={handleEventDrop}
+        schedule={tenantConfig?.horario}
       />
 
       {/* Formulario modal */}

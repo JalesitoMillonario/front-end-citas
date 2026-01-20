@@ -2,6 +2,72 @@ import { v4 as uuidv4 } from 'uuid';
 import { getOne, getAll, run } from '../database/db.js';
 import { webhookCitaCreada, webhookCitaActualizada, webhookCitaCancelada, webhookCitaConfirmada, webhookCitaCompletada } from '../utils/webhooks.js';
 
+// Función auxiliar para validar horario de apertura
+function validarHorarioApertura(tenantId, fecha, hora) {
+  // Obtener horario del negocio
+  const negocio = getOne(
+    'SELECT horario FROM negocios WHERE tenant_id = ?',
+    [tenantId]
+  );
+
+  if (!negocio || !negocio.horario) {
+    return {
+      valido: false,
+      error: 'Negocio sin horario configurado'
+    };
+  }
+
+  let horario;
+  try {
+    horario = JSON.parse(negocio.horario);
+  } catch (e) {
+    return {
+      valido: false,
+      error: 'Horario configurado inválido'
+    };
+  }
+
+  // Obtener día de la semana
+  const fechaObj = new Date(fecha + 'T00:00:00');
+  const diaSemanaNumero = fechaObj.getDay();
+  const diasMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+  const diaSemana = diasMap[diaSemanaNumero];
+
+  const horarioDia = horario[diaSemana];
+
+  // Verificar si está cerrado
+  if (!horarioDia || !horarioDia.abierto) {
+    return {
+      valido: false,
+      error: `El negocio está cerrado los ${diaSemana}s`
+    };
+  }
+
+  // Verificar si la hora está dentro del horario de apertura
+  if (hora < horarioDia.inicio || hora >= horarioDia.cierre) {
+    return {
+      valido: false,
+      error: `La hora debe estar entre ${horarioDia.inicio} y ${horarioDia.cierre}`
+    };
+  }
+
+  // Verificar si está en pausa
+  if (horarioDia.pausas && horarioDia.pausas.length > 0) {
+    const enPausa = horarioDia.pausas.some(pausa => {
+      return hora >= pausa.inicio && hora < pausa.fin;
+    });
+
+    if (enPausa) {
+      return {
+        valido: false,
+        error: 'La hora seleccionada está en horario de pausa'
+      };
+    }
+  }
+
+  return { valido: true };
+}
+
 // Crear cita
 export const crearCita = (req, res) => {
   try {
@@ -22,6 +88,15 @@ export const crearCita = (req, res) => {
     // Validaciones
     if (!servicio_id || !fecha || !hora) {
       return res.status(400).json({ error: 'Faltan datos obligatorios: servicio_id, fecha, hora' });
+    }
+
+    // Validar que la cita esté dentro del horario de apertura
+    const validacion = validarHorarioApertura(tenantId, fecha, hora);
+    if (!validacion.valido) {
+      return res.status(400).json({
+        error: 'Horario no válido',
+        message: validacion.error
+      });
     }
 
     // UPSERT de cliente: buscar por teléfono o crear nuevo
@@ -525,6 +600,15 @@ export const modificarCitaPorTelefono = (req, res) => {
       });
     }
 
+    // Validar que la nueva cita esté dentro del horario de apertura
+    const validacion = validarHorarioApertura(tenantId, nueva_fecha, nueva_hora);
+    if (!validacion.valido) {
+      return res.status(400).json({
+        error: 'Horario no válido',
+        message: validacion.error
+      });
+    }
+
     // Determinar el servicio a usar (el nuevo o el actual)
     const servicioIdFinal = nuevo_servicio_id || citaActual.servicio_id;
 
@@ -627,6 +711,57 @@ export const consultarDisponibilidad = (req, res) => {
       return res.status(400).json({ error: 'Fecha es obligatoria' });
     }
 
+    // Obtener horario del negocio
+    const negocio = getOne(
+      'SELECT horario FROM negocios WHERE tenant_id = ?',
+      [tenantId]
+    );
+
+    if (!negocio || !negocio.horario) {
+      return res.status(400).json({
+        error: 'Negocio no encontrado o sin horario configurado',
+        message: 'Por favor configure el horario de su negocio en Configuración'
+      });
+    }
+
+    let horario;
+    try {
+      horario = JSON.parse(negocio.horario);
+    } catch (e) {
+      return res.status(400).json({
+        error: 'Horario configurado inválido',
+        message: 'Por favor verifique la configuración del horario'
+      });
+    }
+
+    // Obtener día de la semana de la fecha (0=domingo, 1=lunes, ..., 6=sábado)
+    const fechaObj = new Date(fecha + 'T00:00:00');
+    const diaSemanaNumero = fechaObj.getDay(); // 0=domingo, 1=lunes, etc.
+
+    // Mapear número de día a nombre en español
+    const diasMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const diaSemana = diasMap[diaSemanaNumero];
+
+    const horarioDia = horario[diaSemana];
+
+    // Verificar si el negocio está cerrado ese día
+    if (!horarioDia || !horarioDia.abierto) {
+      return res.json({
+        fecha,
+        dia_semana: diaSemana,
+        cerrado: true,
+        mensaje: `El negocio está cerrado los ${diaSemana}s`,
+        horario_negocio: null,
+        resumen: {
+          total_slots: 0,
+          libres: 0,
+          ocupados: 0
+        },
+        slots: [],
+        citas_del_dia: []
+      });
+    }
+
     // Obtener citas del día con información completa
     const citasDelDia = getAll(
       `SELECT c.hora_inicio, c.hora_fin, c.estado, s.nombre as servicio_nombre, cl.nombre as cliente_nombre
@@ -638,16 +773,38 @@ export const consultarDisponibilidad = (req, res) => {
       [tenantId, fecha]
     );
 
-    // Generar todos los slots del día (9:00 - 20:00 cada 30 min)
-    const horaInicio = 9; // 9:00
-    const horaFin = 20; // 20:00
+    // Parsear horario de apertura y cierre
+    const [horaApertura, minApertura] = horarioDia.inicio.split(':').map(Number);
+    const [horaCierre, minCierre] = horarioDia.fin.split(':').map(Number);
+    const horaInicioMinutos = horaApertura * 60 + minApertura;
+    const horaFinMinutos = horaCierre * 60 + minCierre;
+
     const intervalo = 30; // minutos
     const slots = [];
 
-    for (let hora = horaInicio * 60; hora < horaFin * 60; hora += intervalo) {
-      const horas = Math.floor(hora / 60);
-      const minutos = hora % 60;
+    // Generar slots para el horario de apertura
+    for (let minuto = horaInicioMinutos; minuto < horaFinMinutos; minuto += intervalo) {
+      const horas = Math.floor(minuto / 60);
+      const minutos = minuto % 60;
       const horaStr = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+
+      // Verificar si está en pausa
+      let enPausa = false;
+      if (horarioDia.pausas && horarioDia.pausas.length > 0) {
+        enPausa = horarioDia.pausas.some(pausa => {
+          return horaStr >= pausa.inicio && horaStr < pausa.fin;
+        });
+      }
+
+      if (enPausa) {
+        slots.push({
+          hora: horaStr,
+          disponible: false,
+          motivo: 'pausa',
+          ocupado_por: 'Pausa / Descanso'
+        });
+        continue;
+      }
 
       // Verificar si este slot está ocupado por alguna cita
       const citaEnSlot = citasDelDia.find((cita) => {
@@ -658,6 +815,7 @@ export const consultarDisponibilidad = (req, res) => {
         slots.push({
           hora: horaStr,
           disponible: false,
+          motivo: 'cita',
           ocupado_por: citaEnSlot.servicio_nombre,
           cliente: citaEnSlot.cliente_nombre,
           estado: citaEnSlot.estado
@@ -673,18 +831,23 @@ export const consultarDisponibilidad = (req, res) => {
     // Contar slots libres y ocupados
     const libres = slots.filter(s => s.disponible).length;
     const ocupados = slots.filter(s => !s.disponible).length;
+    const enPausa = slots.filter(s => s.motivo === 'pausa').length;
 
     res.json({
       fecha,
+      dia_semana: diaSemana,
+      cerrado: false,
       horario_negocio: {
-        apertura: '09:00',
-        cierre: '20:00',
+        apertura: horarioDia.inicio,
+        cierre: horarioDia.fin,
+        pausas: horarioDia.pausas || [],
         intervalo_minutos: intervalo
       },
       resumen: {
         total_slots: slots.length,
         libres,
-        ocupados
+        ocupados: ocupados - enPausa,
+        en_pausa: enPausa
       },
       slots,
       citas_del_dia: citasDelDia
