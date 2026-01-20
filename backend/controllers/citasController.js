@@ -39,7 +39,7 @@ function validarHorarioApertura(tenantId, fecha, hora) {
   if (!horarioDia || !horarioDia.abierto) {
     return {
       valido: false,
-      error: `El negocio está cerrado los ${diaSemana}s`
+      error: 'El negocio está cerrado ese día'
     };
   }
 
@@ -750,7 +750,7 @@ export const consultarDisponibilidad = (req, res) => {
         fecha,
         dia_semana: diaSemana,
         cerrado: true,
-        mensaje: `El negocio está cerrado los ${diaSemana}s`,
+        mensaje: 'CERRADO',
         horario_negocio: null,
         resumen: {
           total_slots: 0,
