@@ -2,6 +2,19 @@ import { v4 as uuidv4 } from 'uuid';
 import { getOne, getAll, run } from '../database/db.js';
 import { webhookCitaCreada, webhookCitaActualizada, webhookCitaCancelada, webhookCitaConfirmada, webhookCitaCompletada } from '../utils/webhooks.js';
 
+// Horario por defecto si no está configurado
+function obtenerHorarioPorDefecto() {
+  return {
+    lunes: { abierto: true, inicio: '09:00', fin: '20:00', pausas: [] },
+    martes: { abierto: true, inicio: '09:00', fin: '20:00', pausas: [] },
+    miercoles: { abierto: true, inicio: '09:00', fin: '20:00', pausas: [] },
+    jueves: { abierto: true, inicio: '09:00', fin: '20:00', pausas: [] },
+    viernes: { abierto: true, inicio: '09:00', fin: '20:00', pausas: [] },
+    sabado: { abierto: true, inicio: '09:00', fin: '14:00', pausas: [] },
+    domingo: { abierto: false, inicio: '09:00', fin: '14:00', pausas: [] }
+  };
+}
+
 // Función auxiliar para validar horario de apertura
 function validarHorarioApertura(tenantId, fecha, hora) {
   // Obtener horario del negocio
@@ -10,21 +23,19 @@ function validarHorarioApertura(tenantId, fecha, hora) {
     [tenantId]
   );
 
-  if (!negocio || !negocio.horario) {
-    return {
-      valido: false,
-      error: 'Negocio sin horario configurado'
-    };
-  }
-
   let horario;
-  try {
-    horario = JSON.parse(negocio.horario);
-  } catch (e) {
-    return {
-      valido: false,
-      error: 'Horario configurado inválido'
-    };
+
+  // Si no hay horario configurado, usar por defecto
+  if (!negocio || !negocio.horario) {
+    console.log('⚠️  Negocio sin horario configurado, usando horario por defecto');
+    horario = obtenerHorarioPorDefecto();
+  } else {
+    try {
+      horario = JSON.parse(negocio.horario);
+    } catch (e) {
+      console.log('⚠️  Error parseando horario, usando horario por defecto');
+      horario = obtenerHorarioPorDefecto();
+    }
   }
 
   // Obtener día de la semana
@@ -717,21 +728,19 @@ export const consultarDisponibilidad = (req, res) => {
       [tenantId]
     );
 
-    if (!negocio || !negocio.horario) {
-      return res.status(400).json({
-        error: 'Negocio no encontrado o sin horario configurado',
-        message: 'Por favor configure el horario de su negocio en Configuración'
-      });
-    }
-
     let horario;
-    try {
-      horario = JSON.parse(negocio.horario);
-    } catch (e) {
-      return res.status(400).json({
-        error: 'Horario configurado inválido',
-        message: 'Por favor verifique la configuración del horario'
-      });
+
+    // Si no hay horario configurado, usar por defecto
+    if (!negocio || !negocio.horario) {
+      console.log('⚠️  Consultando disponibilidad sin horario configurado, usando horario por defecto');
+      horario = obtenerHorarioPorDefecto();
+    } else {
+      try {
+        horario = JSON.parse(negocio.horario);
+      } catch (e) {
+        console.log('⚠️  Error parseando horario en disponibilidad, usando horario por defecto');
+        horario = obtenerHorarioPorDefecto();
+      }
     }
 
     // Obtener día de la semana de la fecha (0=domingo, 1=lunes, ..., 6=sábado)
