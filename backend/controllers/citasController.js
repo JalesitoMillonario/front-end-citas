@@ -583,7 +583,7 @@ export const modificarCitaPorTelefono = (req, res) => {
         cl.email as cliente_email,
         s.nombre as servicio_nombre,
         s.precio as precio_servicio,
-        s.duracion_minutos as duracion_minutos
+        s.duracion as duracion_minutos
        FROM citas c
        JOIN clientes cl ON c.cliente_id = cl.cliente_id
        JOIN servicios s ON c.servicio_id = s.servicio_id
@@ -625,7 +625,7 @@ export const modificarCitaPorTelefono = (req, res) => {
 
     // Obtener duración del servicio
     const servicio = getOne(
-      'SELECT duracion_minutos, nombre FROM servicios WHERE servicio_id = ? AND tenant_id = ?',
+      'SELECT duracion, nombre FROM servicios WHERE servicio_id = ? AND tenant_id = ?',
       [servicioIdFinal, tenantId]
     );
 
@@ -636,7 +636,7 @@ export const modificarCitaPorTelefono = (req, res) => {
     // Calcular hora_fin basada en duración
     const [nuevaHora, nuevosMinutos] = nueva_hora.split(':').map(Number);
     const minutosInicio = nuevaHora * 60 + nuevosMinutos;
-    const minutosFin = minutosInicio + servicio.duracion_minutos;
+    const minutosFin = minutosInicio + servicio.duracion;
     const horaFin = Math.floor(minutosFin / 60);
     const minutosFin2 = minutosFin % 60;
     const nuevaHoraFin = `${String(horaFin).padStart(2, '0')}:${String(minutosFin2).padStart(2, '0')}`;
